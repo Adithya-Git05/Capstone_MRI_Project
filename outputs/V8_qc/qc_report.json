@@ -1,0 +1,59 @@
+{
+  "mri_vs_tumor": {
+    "shapes_match": true,
+    "spacing_match": true,
+    "affine_match": true,
+    "all_pass": true
+  },
+  "mri_vs_parcellation": {
+    "shapes_match": true,
+    "spacing_match": true,
+    "affine_match": true,
+    "all_pass": true
+  },
+  "physical_spacing_mm": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "volume_shape": [
+    240,
+    240,
+    155
+  ],
+  "affine_det": 1.0,
+  "orientation": [
+    "L",
+    "P",
+    "S"
+  ],
+  "mri_vs_dti": {
+    "shapes_match": true,
+    "spacing_match": true,
+    "affine_match": true,
+    "all_pass": true
+  },
+  "dti_available": true,
+  "tract_registration": {
+    "corpus_callosum": {
+      "shapes_match": true,
+      "spacing_match": true,
+      "affine_match": true,
+      "all_pass": true
+    },
+    "corticospinal_tract": {
+      "shapes_match": true,
+      "spacing_match": true,
+      "affine_match": true,
+      "all_pass": true
+    },
+    "optic_radiations": {
+      "shapes_match": true,
+      "spacing_match": true,
+      "affine_match": true,
+      "all_pass": true
+    }
+  },
+  "all_critical_passed": true,
+  "fail_reasons": []
+}

@@ -1,0 +1,32 @@
+================================================================================
+PATIENT GRADE-ADAPTIVE SURGICAL RISK SUMMARY
+Patient: UCSF-PDGM-0004 | Target: Right Frontal Glioblastoma
+================================================================================
+
+1. PREOPERATIVE HISTOPATHOLOGICAL PHENOTYPING:
+   - Predicted Grade: HGG
+   - Confidence: 50.0%
+   - Pathological Phenotype: Infiltrative Glioblastoma Phenotype (WHO Grade IV)
+   - Gross Tumor Volume: 41.92 cm3
+   - Infiltrative Edema Zone: 14.13 cm3
+   - Edema-to-Core Ratio: 0.337
+   - Intratumoral Heterogeneity Ratio: 0.232
+
+2. BIOLOGICALLY-ADAPTED RISK PARAMETERS:
+   - Proximity Decay Spread (sigma_G): 8.5 mm (Standard: 5.0 mm)
+   - Microscopic Infiltrative Halo: +5.0 mm boundary expansion
+   - Halo Minimum Risk Floor: 0.35
+   - Adjusted Weights:
+       wG (Proximity): 0.35
+       wS (Anatomy): 0.12
+       wT (Tracts): 0.25 (Elevated for WM invasion)
+       wC (Functional): 0.2
+       wU (Uncertainty): 0.08
+
+3. NEUROSURGICAL IMPLICATIONS:
+   High-Grade Glioma exhibits microscopic infiltration along white matter tracts. Proximity spread is expanded to 8.5 mm and an infiltrative safety perimeter of 5.0 mm is enforced.
+   The model expands the high-hazard surgical zone beyond the contrast-enhancing
+   tumor border into white matter pathways, warning the surgeon against aggressive
+   resection trajectories that compromise infiltrated peritumoral tracts.
+
+================================================================================

@@ -1,0 +1,95 @@
+{
+  "prototype_version": "V1",
+  "patient_id": "UCSF-PDGM-0004",
+  "paths": {
+    "mri_image": "data/UCSF-PDGM-0004/t1.nii.gz",
+    "tumor_mask": "data/UCSF-PDGM-0004/tumor_mask.nii.gz",
+    "synthseg_labels": "synthseg/output/UCSF-PDGM-0004-synthseg.nii.gz",
+    "output_dir": "risk_map",
+    "risk_map_nii": "risk_map/risk_map.nii.gz",
+    "structure_table_csv": "risk_map/structure_table.csv",
+    "visualization_png": "risk_map/risk_map_slices.png",
+    "dti_fa": "data/UCSF-PDGM-0004/dti_fa.nii.gz",
+    "tract_masks": "data/UCSF-PDGM-0004/tract_masks",
+    "fmri_activation": "data/UCSF-PDGM-0004/fmri_activation.nii.gz",
+    "vessel_mask": "data/UCSF-PDGM-0004/vessel_mask.nii.gz",
+    "fmri_risk": "risk_map/fmri_risk.nii.gz",
+    "vascular_risk": "risk_map/vascular_risk.nii.gz",
+    "uncertainty_map": "risk_map/uncertainty_map.nii.gz",
+    "bvec": "bvec/UCSF-PDGM-0004_bvec",
+    "bval": "bval/UCSF-PDGM-0004_bval",
+    "dwi": "data/UCSF-PDGM-0004/dwi.nii.gz",
+    "t1c": "data/UCSF-PDGM-0004/t1c.nii.gz",
+    "t2": "data/UCSF-PDGM-0004/t2.nii.gz",
+    "flair": "data/UCSF-PDGM-0004/flair.nii.gz"
+  },
+  "risk_model": {
+    "sigma_mm": 5.0,
+    "weight_proximity_wG": 0.35,
+    "weight_structure_wS": 0.30,
+    "weight_tract_wT": 0.25,
+    "weight_uncertainty_wU": 0.10
+  },
+  "modalities": {
+    "weight_dti": 0.2,
+    "weight_fmri": 0.2,
+    "weight_vascular": 0.2,
+    "weight_uncertainty": 0.1
+  },
+  "structure_importance": {
+    "Critical": {
+      "score": 1.0,
+      "structures": [
+        "Brain-Stem",
+        "Left-Lateral-Ventricle",
+        "Right-Lateral-Ventricle",
+        "3rd-Ventricle",
+        "4th-Ventricle",
+        "Left-Inf-Lat-Vent",
+        "Right-Inf-Lat-Vent"
+      ]
+    },
+    "Important": {
+      "score": 0.7,
+      "structures": [
+        "Left-Thalamus",
+        "Right-Thalamus",
+        "Left-Caudate",
+        "Right-Caudate",
+        "Left-Putamen",
+        "Right-Putamen",
+        "Left-Pallidum",
+        "Right-Pallidum",
+        "Left-Hippocampus",
+        "Right-Hippocampus",
+        "Left-Amygdala",
+        "Right-Amygdala",
+        "Left-Accumbens-area",
+        "Right-Accumbens-area",
+        "Left-Cerebral-Cortex",
+        "Right-Cerebral-Cortex"
+      ]
+    },
+    "General": {
+      "score": 0.3,
+      "structures": [
+        "Left-Cerebral-White-Matter",
+        "Right-Cerebral-White-Matter",
+        "Left-Cerebellum-White-Matter",
+        "Right-Cerebellum-White-Matter",
+        "Left-Cerebellum-Cortex",
+        "Right-Cerebellum-Cortex",
+        "Left-VentralDC",
+        "Right-VentralDC"
+      ]
+    },
+    "Background": {
+      "score": 0.0,
+      "structures": [
+        "Background",
+        "CSF",
+        "Unknown"
+      ]
+    }
+  }
+}

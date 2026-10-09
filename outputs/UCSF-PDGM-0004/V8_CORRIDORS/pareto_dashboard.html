@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Surgical Corridor Pareto Trade-Off Analysis</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background:#0e1117; color:#c9d1d9; margin:30px; }
+        h1, h2 { color: #58a6ff; }
+        table { width:100%; border-collapse:collapse; margin-top:16px; background:#161b22; border-radius:8px; overflow:hidden; }
+        th { background:#21262d; color:#58a6ff; text-align:left; padding:12px; border-bottom:2px solid #30363d; }
+        .card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:20px; margin-bottom:24px; }
+        .tag { display:inline-block; padding:4px 10px; border-radius:12px; font-size:0.85em; font-weight:bold; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Neurosurgical Trajectory Planning: Multi-Objective Pareto Analysis</h1>
+    <div style="color:#8b949e;margin-bottom:20px;">Patient: <strong>UCSF-PDGM-0004</strong> | Pathology: Right Frontal Glioblastoma | Module: V8 Validated</div>
+
+    <div class="card">
+        <h3 style="color:#33ccff;margin-top:0;">📊 Candidate Corridor Clinical Trade-Off Matrix</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th><th>Corridor Name</th><th>Length</th><th>Mean Risk</th><th>Max Hazard</th>
+                    <th>Tract Risk</th><th>Cost C(&tau;)</th><th>Pareto Status</th><th>Clinical Strategy</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr style="border-bottom:1px solid #30363d;">
+            <td style="padding:10px;font-weight:bold;color:#58a6ff">C2</td>
+            <td style="padding:10px;">Corridor-2 (Superior Frontal)</td>
+            <td style="padding:10px;">35.2 mm</td>
+            <td style="padding:10px;">0.3352</td>
+            <td style="padding:10px;color:#7ee787">0.4591</td>
+            <td style="padding:10px;">0.0735</td>
+            <td style="padding:10px;font-weight:bold;">0.0736</td>
+            <td style="padding:10px;"><span style="background:#238636;color:white;padding:3px 8px;border-radius:10px;font-size:0.8em">Pareto Optimal</span></td>
+            <td style="padding:10px;color:#d2a8ff;font-style:italic;">Maximum Functional Safety (Lowest Peak Hazard)</td>
+        </tr>
+        
+        <tr style="border-bottom:1px solid #30363d;">
+            <td style="padding:10px;font-weight:bold;color:#58a6ff">C3</td>
+            <td style="padding:10px;">Corridor-3 (Anterior Frontal)</td>
+            <td style="padding:10px;">30.0 mm</td>
+            <td style="padding:10px;">0.3647</td>
+            <td style="padding:10px;color:#7ee787">0.5062</td>
+            <td style="padding:10px;">0.0991</td>
+            <td style="padding:10px;font-weight:bold;">0.0737</td>
+            <td style="padding:10px;"><span style="background:#238636;color:white;padding:3px 8px;border-radius:10px;font-size:0.8em">Pareto Optimal</span></td>
+            <td style="padding:10px;color:#d2a8ff;font-style:italic;">Minimal Dissection (Shortest Trajectory)</td>
+        </tr>
+        
+        <tr style="border-bottom:1px solid #30363d;">
+            <td style="padding:10px;font-weight:bold;color:#58a6ff">C1</td>
+            <td style="padding:10px;">Corridor-1 (Lateral Frontal)</td>
+            <td style="padding:10px;">32.3 mm</td>
+            <td style="padding:10px;">0.3379</td>
+            <td style="padding:10px;color:#ff7b72">0.6938</td>
+            <td style="padding:10px;">0.0810</td>
+            <td style="padding:10px;font-weight:bold;">0.0801</td>
+            <td style="padding:10px;"><span style="background:#238636;color:white;padding:3px 8px;border-radius:10px;font-size:0.8em">Pareto Optimal</span></td>
+            <td style="padding:10px;color:#d2a8ff;font-style:italic;">Alternative Balanced Access</td>
+        </tr>
+        
+        <tr style="border-bottom:1px solid #30363d;">
+            <td style="padding:10px;font-weight:bold;color:#58a6ff">C4</td>
+            <td style="padding:10px;">Corridor-4 (Pterional/Temporal)</td>
+            <td style="padding:10px;">56.1 mm</td>
+            <td style="padding:10px;">0.2547</td>
+            <td style="padding:10px;color:#ff7b72">0.6938</td>
+            <td style="padding:10px;">0.1110</td>
+            <td style="padding:10px;font-weight:bold;">0.1287</td>
+            <td style="padding:10px;"><span style="background:#238636;color:white;padding:3px 8px;border-radius:10px;font-size:0.8em">Pareto Optimal</span></td>
+            <td style="padding:10px;color:#d2a8ff;font-style:italic;">Low-Angle Subcortical Approach (Lowest Mean Risk)</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+
+    
+
+    <div class="card" style="margin-top:24px;">
+        <h3 style="color:#38ef7d;margin-top:0;">💡 Clinical Synthesis & Decision Support</h3>
+        <ul>
+            <li><strong>For Minimal Brain Retraction / Fast Emergency Access:</strong> Choose <strong>Corridor C3 (Anterior Frontopolar)</strong> with path length <strong>29.97 mm</strong>.</li>
+            <li><strong>For Maximum Safety to Motor & Eloquent Cortical Centers:</strong> Choose <strong>Corridor C2 (Superior Frontal)</strong>, which suppresses maximum hazard to <strong>0.4591</strong> and preserves CST clearance.</li>
+            <li><strong>For Deep Tumor Infiltration Coverage:</strong> Choose <strong>Corridor C4 (Pterional/Temporal)</strong>, presenting the lowest mean traverse cost (<strong>0.2547</strong>) at the expense of a 56.1 mm trajectory.</li>
+        </ul>
+    </div>
+</body>
+</html>

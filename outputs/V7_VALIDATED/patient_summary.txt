@@ -1,0 +1,202 @@
+======================================================================
+PATIENT SURGICAL RISK ASSESSMENT SUMMARY — RESEARCH DECISION SUPPORT
+======================================================================
+Patient ID       : UCSF-PDGM-0004
+Model Version    : V8_VALIDATED
+Tumor Volume     : 41919.0 mm³  (41.92 cm³)
+Tumor Centroid   : X=161.9  Y=154.1  Z=104.6  (voxel coords)
+
+DATA AVAILABILITY & PER-MODALITY CONFIDENCE:
+  Structural MRI (T1/T1CE/T2/FLAIR) : AVAILABLE  | Confidence: HIGH
+  Tumor Segmentation                 : AVAILABLE  | Confidence: HIGH
+  DTI & Tractography                 : AVAILABLE  | Confidence: HIGH
+  Task-based fMRI                    : UNAVAILABLE (fMRI not acquired for this exam)
+  Vessel imaging (MRA/CTA)           : UNAVAILABLE (No MRA/CTA)
+  Empirical uncertainty              : UNAVAILABLE (Single consensus model; no ensemble)
+  Overall evidence status            : MULTI-MODAL (Structural + DTI)
+
+ACTIVE MODEL WEIGHTS (after renormalization for unavailable components):
+  G: 38.9%, S: 16.7%, T: 22.2%, C: 22.2%
+
+RISK LABEL THRESHOLDS (prototype visualization — NOT validated clinical thresholds):
+  LOW [0.00–0.20] | MODERATE [0.20–0.40] | ELEVATED [0.40–0.60]
+  HIGH [0.60–0.80] | VERY HIGH [0.80–1.00]
+
+──────────────────────────────────────────────────────────────────────
+AT-RISK WHITE-MATTER TRACTS (sorted by model-derived tract risk):
+──────────────────────────────────────────────────────────────────────
+
+  [OVERLAPPING] CORTICOSPINAL TRACT
+    Type              : White-Matter Tract (DTI-derived ROI)
+    Min tumor distance: 0.0 mm
+    Mean distance     : 16.47 mm
+    Overlap voxels    : 1052  (tumor: 2.51%, tract: 2.51%)
+    Proximity P_i     : 1.0000  (alpha=0.70)
+    Overlap O_i       : 0.0251  (beta=0.30)
+    Tract importance  : 0.95
+    Tract risk T_i    : 0.6722
+    Functional domain : Motor
+    Potential conseq  : Potential motor weakness or paresis
+    fMRI evidence     : UNAVAILABLE
+    Data source       : Patient DTI (FA-threshold atlas ROI)
+    QC status         : PASS
+
+  [OVERLAPPING] SUPERIOR LONGITUDINAL FASCICULUS
+    Type              : White-Matter Tract (DTI-derived ROI)
+    Min tumor distance: 0.0 mm
+    Mean distance     : 9.93 mm
+    Overlap voxels    : 1558  (tumor: 3.72%, tract: 7.65%)
+    Proximity P_i     : 1.0000  (alpha=0.70)
+    Overlap O_i       : 0.0765  (beta=0.30)
+    Tract importance  : 0.85
+    Tract risk T_i    : 0.6145
+    Functional domain : Language
+    Potential conseq  : Potential language / association impairment
+    fMRI evidence     : UNAVAILABLE
+    Data source       : Patient DTI (FA-threshold atlas ROI)
+    QC status         : PASS
+
+  [OVERLAPPING] WHITE MATTER TRACTS
+    Type              : White-Matter Tract (DTI-derived ROI)
+    Min tumor distance: 0.0 mm
+    Mean distance     : 42.88 mm
+    Overlap voxels    : 1061  (tumor: 2.53%, tract: 0.41%)
+    Proximity P_i     : 1.0000  (alpha=0.70)
+    Overlap O_i       : 0.0253  (beta=0.30)
+    Tract importance  : 0.70
+    Tract risk T_i    : 0.4953
+    Functional domain : Association
+    Potential conseq  : Potential white-matter pathway disruption
+    fMRI evidence     : UNAVAILABLE
+    Data source       : Patient DTI (FA-threshold atlas ROI)
+    QC status         : PASS
+
+  [DISJOINT] CORPUS CALLOSUM
+    Type              : White-Matter Tract (DTI-derived ROI)
+    Min tumor distance: 9.0 mm
+    Mean distance     : 39.12 mm
+    Overlap voxels    : 0  (tumor: 0.00%, tract: 0.00%)
+    Proximity P_i     : 0.4066  (alpha=0.70)
+    Overlap O_i       : 0.0000  (beta=0.30)
+    Tract importance  : 0.70
+    Tract risk T_i    : 0.1992
+    Functional domain : Interhemispheric
+    Potential conseq  : Potential interhemispheric disconnection
+    fMRI evidence     : UNAVAILABLE
+    Data source       : Patient DTI (FA-threshold atlas ROI)
+    QC status         : PASS
+
+  [DISJOINT] OPTIC RADIATIONS
+    Type              : White-Matter Tract (DTI-derived ROI)
+    Min tumor distance: 34.84 mm
+    Mean distance     : 60.66 mm
+    Overlap voxels    : 0  (tumor: 0.00%, tract: 0.00%)
+    Proximity P_i     : 0.0307  (alpha=0.70)
+    Overlap O_i       : 0.0000  (beta=0.30)
+    Tract importance  : 0.80
+    Tract risk T_i    : 0.0172
+    Functional domain : Visual
+    Potential conseq  : Potential visual-field deficit
+    fMRI evidence     : UNAVAILABLE
+    Data source       : Patient DTI (FA-threshold atlas ROI)
+    QC status         : PASS
+
+──────────────────────────────────────────────────────────────────────
+AT-RISK ANATOMICAL STRUCTURES (top by combined risk, excluding generic tissue):
+──────────────────────────────────────────────────────────────────────
+
+  Corticospinal Tract  [Label -1]
+    Type              : White-Matter Tract
+    Importance score  : 0.95
+    Min tumor distance: 0.0 mm
+    Mean distance     : 16.47 mm
+    Overlap voxels    : 1052  (tumor: 2.51%, struct: 2.51%)
+    Proximity risk    : 1.0000
+    Tract risk        : 0.6722
+    Consequence score : 0.6050
+    Combined risk     : 0.6722  → HIGH
+    Functional domain : Motor
+    Potential conseq  : Potential motor weakness or paresis
+    Evidence status   : DTI-derived ROI (patient FA)
+    QC status         : PASS
+
+  Superior Longitudinal Fasciculus  [Label -1]
+    Type              : White-Matter Tract
+    Importance score  : 0.85
+    Min tumor distance: 0.0 mm
+    Mean distance     : 9.93 mm
+    Overlap voxels    : 1558  (tumor: 3.72%, struct: 7.65%)
+    Proximity risk    : 1.0000
+    Tract risk        : 0.6145
+    Consequence score : 0.5531
+    Combined risk     : 0.6145  → HIGH
+    Functional domain : Language
+    Potential conseq  : Potential language / association impairment
+    Evidence status   : DTI-derived ROI (patient FA)
+    QC status         : PASS
+
+  White Matter Tracts  [Label -1]
+    Type              : White-Matter Tract
+    Importance score  : 0.70
+    Min tumor distance: 0.0 mm
+    Mean distance     : 42.88 mm
+    Overlap voxels    : 1061  (tumor: 2.53%, struct: 0.41%)
+    Proximity risk    : 1.0000
+    Tract risk        : 0.4953
+    Consequence score : 0.4458
+    Combined risk     : 0.4953  → ELEVATED
+    Functional domain : Association
+    Potential conseq  : Potential white-matter pathway disruption
+    Evidence status   : DTI-derived ROI (patient FA)
+    QC status         : PASS
+
+  Corpus Callosum  [Label -1]
+    Type              : White-Matter Tract
+    Importance score  : 0.70
+    Min tumor distance: 9.0 mm
+    Mean distance     : 39.12 mm
+    Overlap voxels    : 0  (tumor: 0.00%, struct: 0.00%)
+    Proximity risk    : 0.4066
+    Tract risk        : 0.1992
+    Consequence score : 0.1793
+    Combined risk     : 0.1992  → LOW
+    Functional domain : Interhemispheric
+    Potential conseq  : Potential interhemispheric disconnection
+    Evidence status   : DTI-derived ROI (patient FA)
+    QC status         : PASS
+
+  Optic Radiations  [Label -1]
+    Type              : White-Matter Tract
+    Importance score  : 0.80
+    Min tumor distance: 34.84 mm
+    Mean distance     : 60.66 mm
+    Overlap voxels    : 0  (tumor: 0.00%, struct: 0.00%)
+    Proximity risk    : 0.0307
+    Tract risk        : 0.0172
+    Consequence score : 0.0155
+    Combined risk     : 0.0172  → LOW
+    Functional domain : Visual
+    Potential conseq  : Potential visual-field deficit
+    Evidence status   : DTI-derived ROI (patient FA)
+    QC status         : PASS
+
+──────────────────────────────────────────────────────────────────────
+DISCLAIMER & SCIENTIFIC INTERPRETATION:
+──────────────────────────────────────────────────────────────────────
+
+  This report is generated by a RESEARCH DECISION-SUPPORT PROTOTYPE.
+  Risk scores represent model-derived spatial relationships between the
+  tumor and anatomical/functional structures. They are NOT predictions of:
+    - Actual probability of postoperative injury
+    - Patient-specific neurological outcome
+    - Surgical morbidity or mortality
+
+  A spatial overlap of 0 mm distance or co-registered voxels may reflect
+  true anatomical contact OR registration error between DTI and T1 space.
+  Clinical correlation and expert review are required before any use in
+  patient care planning.
+
+  Functional consequence labels are based on known neuroanatomy and are
+  NOT patient-specific fMRI findings (fMRI was not acquired for this exam).
+
+======================================================================

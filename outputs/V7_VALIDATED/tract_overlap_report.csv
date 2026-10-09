@@ -1,0 +1,6 @@
+tract_name,tract_volume_mm3,tumor_volume_mm3,overlap_voxels,tumor_overlap_fraction,tract_overlap_fraction,min_distance_mm,mean_distance_mm,spatial_relationship,qc_note,registration_check
+corpus_callosum,13017.0,41919.0,0,0.0,0.0,9.0,39.12,DISJOINT,No overlap; minimum distance = 9.00 mm.,PASS — same affine as MRI
+corticospinal_tract,41892.0,41919.0,1052,0.0251,0.0251,0.0,16.47,OVERLAPPING,1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation.,PASS — same affine as MRI
+optic_radiations,13491.0,41919.0,0,0.0,0.0,34.84,60.66,DISJOINT,No overlap; minimum distance = 34.84 mm.,PASS — same affine as MRI
+superior_longitudinal_fasciculus,20363.0,41919.0,1558,0.0372,0.0765,0.0,9.93,OVERLAPPING,1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation.,PASS — same affine as MRI
+white_matter_tracts,256254.0,41919.0,1061,0.0253,0.0041,0.0,42.88,OVERLAPPING,1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation.,PASS — same affine as MRI

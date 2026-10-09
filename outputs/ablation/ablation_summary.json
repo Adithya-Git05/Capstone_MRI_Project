@@ -1,0 +1,99 @@
+[
+  {
+    "configuration": "A (G only)",
+    "weights_used": {
+      "G": 1.0
+    },
+    "mean_risk_brain": 0.0566,
+    "max_risk_brain": 1.0,
+    "tumor_adjacent_mean_risk_10mm": 0.6092,
+    "nii_file": "ablation_A_risk_map.nii.gz"
+  },
+  {
+    "configuration": "B (S only)",
+    "weights_used": {
+      "S": 1.0
+    },
+    "mean_risk_brain": 0.3,
+    "max_risk_brain": 0.3,
+    "tumor_adjacent_mean_risk_10mm": 0.3,
+    "nii_file": "ablation_B_risk_map.nii.gz"
+  },
+  {
+    "configuration": "C (G + S)",
+    "weights_used": {
+      "G": 0.5,
+      "S": 0.5
+    },
+    "mean_risk_brain": 0.1783,
+    "max_risk_brain": 0.65,
+    "tumor_adjacent_mean_risk_10mm": 0.4546,
+    "nii_file": "ablation_C_risk_map.nii.gz"
+  },
+  {
+    "configuration": "D (G + S + T)",
+    "weights_used": {
+      "G": 0.45,
+      "S": 0.25,
+      "T": 0.3
+    },
+    "mean_risk_brain": 0.1955,
+    "max_risk_brain": 0.81,
+    "tumor_adjacent_mean_risk_10mm": 0.466,
+    "nii_file": "ablation_D_risk_map.nii.gz"
+  },
+  {
+    "configuration": "E (G + S + C)",
+    "weights_used": {
+      "G": 0.45,
+      "S": 0.25,
+      "C": 0.3
+    },
+    "mean_risk_brain": 0.114,
+    "max_risk_brain": 0.795,
+    "tumor_adjacent_mean_risk_10mm": 0.391,
+    "nii_file": "ablation_E_risk_map.nii.gz"
+  },
+  {
+    "configuration": "F (G + S + T + C)",
+    "weights_used": {
+      "G": 0.35,
+      "S": 0.15,
+      "T": 0.25,
+      "C": 0.25
+    },
+    "mean_risk_brain": 0.1553,
+    "max_risk_brain": 0.8575,
+    "tumor_adjacent_mean_risk_10mm": 0.3905,
+    "nii_file": "ablation_F_risk_map.nii.gz"
+  },
+  {
+    "configuration": "G (Full + Uncertainty)",
+    "weights_used": {
+      "G": 0.35,
+      "S": 0.15,
+      "T": 0.2,
+      "C": 0.2,
+      "U": 0.1
+    },
+    "mean_risk_brain": 0.1434,
+    "max_risk_brain": 0.765,
+    "tumor_adjacent_mean_risk_10mm": 0.4147,
+    "nii_file": "ablation_G_risk_map.nii.gz"
+  },
+  {
+    "configuration": "H (Full + Vascular)",
+    "weights_used": {
+      "G": 0.3,
+      "S": 0.15,
+      "T": 0.2,
+      "C": 0.2,
+      "U": 0.1,
+      "V": 0.05
+    },
+    "mean_risk_brain": 0.1406,
+    "max_risk_brain": 0.72,
+    "tumor_adjacent_mean_risk_10mm": 0.3842,
+    "nii_file": "ablation_H_risk_map.nii.gz"
+  }
+]

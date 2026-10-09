@@ -1,0 +1,43 @@
+{
+  "mri_shape": [
+    240,
+    240,
+    155
+  ],
+  "tumor_shape": [
+    240,
+    240,
+    155
+  ],
+  "labels_shape": [
+    240,
+    240,
+    155
+  ],
+  "mri_spacing": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "tumor_spacing": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "labels_spacing": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "shapes_match": true,
+  "spacing_match": true,
+  "affine_match": true,
+  "dti_available": true,
+  "dti_shape": [
+    240,
+    240,
+    155
+  ],
+  "dti_affine_match": true,
+  "all_passed": true
+}

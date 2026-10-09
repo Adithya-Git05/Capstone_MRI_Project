@@ -1,0 +1,25 @@
+{
+  "patient_id": "UCSF-PDGM-0004",
+  "modalities": {
+    "T1": "AVAILABLE",
+    "T1CE": "AVAILABLE",
+    "T2": "AVAILABLE",
+    "FLAIR": "AVAILABLE",
+    "Tumor_mask": "AVAILABLE",
+    "Parcellation": "AVAILABLE",
+    "DTI_FA": "AVAILABLE",
+    "Tractography_tracts": "AVAILABLE",
+    "fMRI_task_activation": "UNAVAILABLE",
+    "Vessel_imaging_MRA_CTA": "UNAVAILABLE",
+    "Empirical_segmentation_uncertainty": "UNAVAILABLE"
+  },
+  "active_components": {
+    "G (Tumor proximity)": true,
+    "S (Anatomical importance)": true,
+    "T (Tract risk)": true,
+    "C (Functional consequence)": true,
+    "U (Uncertainty)": false,
+    "V (Vessels)": false
+  },
+  "confidence_status": "HIGH"
+}

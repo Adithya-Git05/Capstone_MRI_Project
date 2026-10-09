@@ -1,0 +1,175 @@
+BraTS → 3D Surgical Risk MapImplementation Guide
+Practical step-by-step reference for the first BraTS-only prototype
+1. Goal of this guide
+This guide turns the current pipeline into concrete implementation steps. The first version uses BraTS MRI + tumor segmentation + SynthSeg 2.0 anatomical parcellation. The goal is to produce a voxel-wise 3D risk map. DTI, fMRI, vessels, and trajectory planning are intentionally kept for later versions.
+2. Overall pipeline
+BraTS MRI   ↓Tumor mask + MRI preparation   ↓SynthSeg 2.0   ↓Anatomical parcellation   ↓Tumor → structure distance   +Structure identity / importance   ↓Voxel-wise risk calculation   ↓3D surgical risk map
+3. Stage 0 — Set up the patient data
+Objective: make sure one BraTS patient has all required files in a clean format.
+Required inputs:
+BraTS MRI volume(s), preferably T1/T1CE/T2/FLAIR as available.
+BraTS tumor segmentation mask.
+A consistent NIfTI orientation/affine for MRI and mask.
+Tasks:
+Choose ONE patient as the first test case.
+Identify which MRI volume will be passed to SynthSeg.
+Load the MRI and tumor mask with NiBabel or SimpleITK.
+Check shape, voxel spacing, affine/orientation, and data type.
+Verify that the tumor mask overlaps the MRI in the same patient space.
+Visualize MRI + tumor mask before doing anything else.
+Checkpoint: you should be able to display the MRI with the tumor mask overlaid and confirm that the tumor is in the correct location.
+4. Stage 1 — MRI preprocessing
+Objective: prepare a suitable MRI for anatomical segmentation while preserving spatial correspondence with the tumor mask.
+Determine the MRI contrast/volume to use for SynthSeg.
+Check for obvious empty/corrupt slices and incorrect orientation.
+If preprocessing is needed, record every operation.
+Do NOT independently resize the tumor mask without a corresponding spatial transform.
+Keep the original BraTS image and mask unchanged as the reference copies.
+Checkpoint: processed MRI and tumor mask must still refer to the same patient anatomy and coordinate system.
+5. Stage 2 — Run SynthSeg 2.0
+Objective: obtain anatomical labels/parcellation for the patient's brain.
+Conceptually:
+MRI → SynthSeg 2.0 → anatomical label volume (+ optional posterior/probability outputs)
+Tasks:
+Install/run SynthSeg in the chosen Windows setup.
+Run it on the selected BraTS MRI.
+Save the anatomical label NIfTI and any probability/QC outputs available from the chosen SynthSeg mode.
+Record SynthSeg version, command/settings, input MRI, and output filenames.
+Open the label volume and verify that the segmentation is spatially sensible.
+Checkpoint: you should have a voxel-wise anatomical label map in the same anatomical space as the input MRI, or have a documented transform if the output is in another space.
+6. Stage 3 — Understand and clean the parcellation
+Objective: convert SynthSeg output into the anatomical regions that matter for the risk map.
+Read the SynthSeg label table rather than guessing label IDs.
+Create a Python dictionary: label ID → structure name.
+Identify structures relevant to your first prototype: ventricles, brainstem, cerebellum, major deep gray structures, white matter, and cortical regions available in the selected parcellation.
+Remove/ignore labels that are not useful for the risk calculation.
+Check whether the tumor overlaps or disrupts anatomical labels; record this instead of silently treating the label as ground truth.
+Checkpoint: you should be able to ask your code for a structure by name and obtain its voxel mask.
+7. Stage 4 — Align tumor mask and parcellation
+Objective: make sure tumor and anatomical labels are compared voxel-by-voxel in the correct patient space.
+Preferred rule: avoid unnecessary resampling. If the grids differ, use a documented registration/resampling transform and nearest-neighbour interpolation for discrete masks.
+Compare MRI shape, voxel spacing, affine/orientation for the tumor mask and SynthSeg output.
+If they already match, use them directly.
+If they do not match, register/resample the anatomical label map into the MRI/tumor space using an appropriate transform.
+Use nearest-neighbour interpolation for label maps.
+Overlay tumor + parcellation and visually inspect several slices.
+Checkpoint: tumor mask and each anatomical structure mask must occupy the same voxel grid.
+8. Stage 5 — Compute tumor → structure distance
+Objective: calculate how close every anatomical structure is to the tumor.
+For each structure S:
+1) Extract its binary voxel mask.2) Compute distance from the tumor boundary/region to the structure.3) Store the distance in millimetres, not only voxels, using the MRI voxel spacing.
+Start with Euclidean distance as the first baseline.
+Use a distance transform or equivalent efficient implementation.
+Keep the signed/unsigned distance definition consistent.
+For a structure, record minimum distance, mean distance, and optionally a voxel-wise distance map.
+Recommended first output: a table such as structure, minimum distance (mm), mean distance (mm), and affected/nearby volume.
+9. Stage 6 — Convert distance into a proximity risk G(x)
+Objective: turn physical proximity into a normalized risk contribution.
+A simple first prototype can use a decreasing function such as:
+G(x) = exp(-d(x) / σ)
+where d(x) is distance from the relevant tumor/structure boundary and σ controls how quickly risk falls with distance.
+Choose σ as an explicit experimental parameter rather than hiding it in code.
+Normalize G(x) to 0–1.
+Visualize G(x) alone before combining it with other terms.
+Test several σ values and record how the risk map changes.
+Important: this is a prototype proximity score, not a clinically validated probability of surgical injury.
+10. Stage 7 — Assign structure importance S(x)
+Objective: distinguish anatomically important structures from less critical tissue.
+Create a documented lookup table, for example:
+Structure category
+Example
+Prototype importance
+Critical
+Brainstem / ventricles / selected eloquent regions
+High
+Important
+Major deep gray structures / selected cortex
+Medium–High
+General
+Other non-target anatomy
+Lower
+Do not present these values as clinical truth. Treat them as explicit prototype assumptions that can later be replaced/validated with expert input.
+11. Stage 8 — Build the first risk map
+For the first prototype, use:
+R(x) = wG · G(x) + wS · S(x)
+Later, the full roadmap can expand this to include tract, functional, vascular, and uncertainty terms.
+Create a 3D array R with the same dimensions as the MRI.
+For each voxel, determine its relevant anatomical structure.
+Calculate proximity contribution.
+Apply the structure importance contribution.
+Combine the terms using explicitly documented weights.
+Clip/normalize the final risk map to 0–1.
+Checkpoint: R(x) must have exactly the same spatial geometry as the MRI/tumor mask.
+12. Stage 9 — Save the risk map
+Save at minimum:
+risk_map.nii.gz — continuous 3D risk values.
+tumor_mask.nii.gz — reference copy.
+synthseg_labels.nii.gz — anatomical labels.
+structure_table.csv — label IDs, names, distances and importance values.
+config.json — weights, σ, preprocessing settings, software versions.
+Use the MRI affine/header when writing the risk-map NIfTI so it remains spatially registered to the patient's anatomy.
+13. Stage 10 — Visualize the 3D risk map
+Display axial/coronal/sagittal MRI slices.
+Overlay the tumor mask.
+Overlay anatomical boundaries/labels.
+Overlay the continuous risk map with transparency.
+Add a legend showing low → high risk.
+Also create a 3D rendering if your visualization software supports it.
+Recommended tools: Python (NiBabel/NumPy/matplotlib/Plotly) for development; 3D Slicer for interactive inspection.
+14. Validation checklist for V1
+☐ Tumor mask is correct and belongs to the same patient as the MRI.
+☐ SynthSeg output is anatomically plausible.
+☐ Tumor and parcellation are in the same voxel space.
+☐ Label IDs are mapped using the official label table.
+☐ Distances are calculated in millimetres.
+☐ Risk values are reproducible from the saved configuration.
+☐ Risk map has the same shape and affine as the reference MRI.
+☐ Visual overlays do not show obvious registration/resampling errors.
+☐ Prototype weights/thresholds are clearly documented as assumptions.
+15. What NOT to add yet
+Do not add DTI/tractography until the anatomical-only map works.
+Do not add fMRI until the V1 pipeline is stable.
+Do not add vessels until MRA/CTA data and a vessel-segmentation method are available.
+Do not build trajectory planning yet.
+Do not call the risk value a probability of injury unless it has been calibrated/validated for that interpretation.
+16. V2 → full roadmap additions
+Version
+Add
+Purpose
+V1
+SynthSeg + distance + structure importance
+Working anatomical risk map
+V2
+Atlas + patient-to-atlas registration + QC
+Standardized anatomical priors
+V3
+DTI/tractography
+White-matter tract risk
+V4
+Segmentation uncertainty
+Uncertainty penalty
+V5
+fMRI functional regions
+Functional/eloquent-area risk
+V6
+MRA/CTA vessel segmentation
+Vascular risk
+V7
+A*/Fast Marching corridor generation
+Candidate surgical corridors
+V8
+Pareto analysis + RAG/LLM evidence layer
+Decision-support presentation
+17. Suggested project folder
+risk_map_project/├── data/│   └── patient_001/│       ├── mri.nii.gz│       └── tumor_mask.nii.gz├── synthseg/│   ├── labels.nii.gz│   └── probabilities/   (if generated)├── registration/├── risk_map/│   ├── risk_map.nii.gz│   └── structure_table.csv├── scripts/│   ├── 01_check_data.py│   ├── 02_run_synthseg.py│   ├── 03_align_labels.py│   ├── 04_compute_distance.py│   ├── 05_build_risk_map.py│   └── 06_visualize.py└── config.json
+18. Immediate next actions
+Pick one BraTS patient.
+Confirm the MRI and tumor-mask filenames and dimensions.
+Install/test SynthSeg 2.0 on that patient.
+Inspect the generated anatomical labels.
+Build the label-ID → structure-name dictionary.
+Align labels and tumor mask.
+Compute structure distances.
+Create the first anatomical-only risk map.
+Visualize and validate it before adding any DTI/fMRI/vessel component.
+Important project note: The first risk map is a research prototype and should be described as a patient-specific anatomical risk representation/decision-support component, not as an autonomous surgical recommendation or clinically validated injury probability.

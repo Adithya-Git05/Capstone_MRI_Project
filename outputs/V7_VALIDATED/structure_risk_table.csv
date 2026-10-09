@@ -1,0 +1,7 @@
+structure_name,structure_type,label_id,functional_domain,potential_consequence,consequence_severity,importance_score,tumor_min_distance_mm,tumor_mean_distance_mm,overlap_voxels,overlap_fraction,struct_overlap_fraction,tumor_overlap_fraction,proximity_risk,anatomy_importance_S,tract_risk,consequence_score,combined_risk,risk_label,evidence_status,qc_status
+Corticospinal Tract,White-Matter Tract,-1,Motor,Potential motor weakness or paresis,HIGH,0.95,0.0,16.47,1052,0.0251,0.0251,0.0251,1.0,0.95,0.6722,0.605,0.6722,HIGH,DTI-derived ROI (patient FA),PASS
+Superior Longitudinal Fasciculus,White-Matter Tract,-1,Language,Potential language / association impairment,HIGH,0.85,0.0,9.93,1558,0.0765,0.0765,0.0372,1.0,0.85,0.6145,0.5531,0.6145,HIGH,DTI-derived ROI (patient FA),PASS
+White Matter Tracts,White-Matter Tract,-1,Association,Potential white-matter pathway disruption,HIGH,0.7,0.0,42.88,1061,0.0041,0.0041,0.0253,1.0,0.7,0.4953,0.4458,0.4953,ELEVATED,DTI-derived ROI (patient FA),PASS
+Corpus Callosum,White-Matter Tract,-1,Interhemispheric,Potential interhemispheric disconnection,HIGH,0.7,9.0,39.12,0,0.0,0.0,0.0,0.4066,0.7,0.1992,0.1793,0.1992,LOW,DTI-derived ROI (patient FA),PASS
+Optic Radiations,White-Matter Tract,-1,Visual,Potential visual-field deficit,HIGH,0.8,34.84,60.66,0,0.0,0.0,0.0,0.0307,0.8,0.0172,0.0155,0.0172,LOW,DTI-derived ROI (patient FA),PASS
+Brain-Tissue,Generic/Background,1,General Cortex,Potential local parenchymal disruption,LOW,0.3,0.0,48.0,41919,0.0293,0.0293,1.0,0.0566,0.3,0.2244,0.0452,0.1319,LOW,MULTI-MODAL (Structural + DTI),PASS

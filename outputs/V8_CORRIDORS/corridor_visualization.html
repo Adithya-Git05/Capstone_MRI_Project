@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>V8 Surgical Corridors — UCSF-PDGM-0004</title>
+<style>
+  body {background:#0e1117;color:#eee;font-family:monospace;padding:2em}
+  h1 {color:#33CCFF} h2 {color:#FFFF33}
+  table {border-collapse:collapse;width:100%}
+  th {background:#1a2535;color:#33CCFF;padding:8px;border:1px solid #333}
+  td {padding:6px 8px;border:1px solid #333;color:#ddd}
+  tr:hover td {background:#1a2535}
+  .note {color:#FF9944;font-size:0.9em;margin-top:1em}
+</style></head>
+<body>
+<h1>Candidate Surgical Corridor Analysis</h1>
+<h2>Patient: UCSF-PDGM-0004 | Model: V8_VALIDATED</h2>
+<p class="note">⚠️ RESEARCH PROTOTYPE — Composite cost does NOT equal surgical safety.
+These candidates are for comparative, decision-support analysis only.</p>
+<table>
+  <tr>
+    <th>ID</th><th>Name</th><th>Length (mm)</th><th>Mean Risk</th><th>Max Risk</th>
+    <th>Eloquent Risk</th><th>Tract Risk</th><th>Coverage</th>
+    <th>Composite Cost</th><th>Pareto</th>
+  </tr>
+  
+        <tr>
+          <td>2</td>
+          <td>Corridor-2 (Superior Frontal)</td>
+          <td>35.24</td>
+          <td>0.3352</td>
+          <td>0.4591</td>
+          <td>0.0</td>
+          <td>0.0735</td>
+          <td>0.0063</td>
+          <td>0.0736</td>
+          <td>✅ Pareto-efficient</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Corridor-3 (Anterior Frontal)</td>
+          <td>29.97</td>
+          <td>0.3647</td>
+          <td>0.5062</td>
+          <td>0.0</td>
+          <td>0.0991</td>
+          <td>0.0049</td>
+          <td>0.0737</td>
+          <td>✅ Pareto-efficient</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>Corridor-1 (Lateral Frontal)</td>
+          <td>32.31</td>
+          <td>0.3379</td>
+          <td>0.6938</td>
+          <td>0.0338</td>
+          <td>0.081</td>
+          <td>0.0058</td>
+          <td>0.0801</td>
+          <td>✅ Pareto-efficient</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Corridor-4 (Pterional/Temporal)</td>
+          <td>56.11</td>
+          <td>0.2547</td>
+          <td>0.6938</td>
+          <td>0.0494</td>
+          <td>0.111</td>
+          <td>0.0056</td>
+          <td>0.1287</td>
+          <td>✅ Pareto-efficient</td>
+        </tr>
+</table>
+<p class="note">Pareto-efficient: No other corridor is better on ALL objectives simultaneously.
+Vascular risk = UNAVAILABLE (no MRA/CTA). Ventricular risk = not modeled.</p>
+</body></html>
