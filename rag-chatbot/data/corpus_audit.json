@@ -1,0 +1,28 @@
+{
+  "metadata_rows": 40,
+  "pdf_files": 40,
+  "indexed_chunks": 1454,
+  "indexed_papers": 40,
+  "duplicate_pmcids": [],
+  "duplicate_local_filenames": [],
+  "metadata_without_pdf": [],
+  "pdf_without_metadata": [],
+  "missing_fields": {
+    "title": 0,
+    "authors": 0,
+    "year": 0,
+    "doi": 0,
+    "pmcid": 0,
+    "source_url": 0,
+    "license": 25
+  },
+  "evidence_type_counts": {
+    "classification": 10,
+    "guideline": 7,
+    "primary_study": 5,
+    "systematic_review": 17,
+    "consensus_statement": 1
+  },
+  "evidence_type_note": "Labels are query-derived categories and require independent manual review.",
+  "license_note": "Blank license values were retained as unavailable; no license was inferred."
+}

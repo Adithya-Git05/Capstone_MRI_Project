@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Brain Tumor RAG Prototype</title><link rel="stylesheet" href="/static/styles.css"></head>
+<body>
+<main class="shell">
+  <header><p class="eyebrow">RESEARCH PROTOTYPE</p><h1>Brain Tumor Surgical Planning</h1><p class="notice">DEMO/SYNTHETIC PATIENT DATA</p></header>
+  <section class="controls"><label>Case <select id="case"><option value="DEMO_001">DEMO_001</option></select></label><label class="question">Question <input id="question" value="What are the important considerations for this case?"></label><button id="submit">Ask</button></section>
+  <section class="context"><h2>Patient context</h2><pre id="patient">Loading...</pre></section>
+  <section id="warnings" class="warnings"></section>
+  <section class="answer"><h2>Answer</h2><div id="answer">Ask a question to retrieve evidence.</div></section>
+  <section><h2>Retrieved evidence</h2><div id="evidence"></div></section>
+</main><script src="/static/app.js?v=5"></script>
+</body></html>

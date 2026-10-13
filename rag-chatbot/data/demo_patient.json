@@ -1,0 +1,18 @@
+{
+  "case_id": "DEMO_001",
+  "data_type": "SYNTHETIC_DEMO",
+  "tumor_type": "glioma",
+  "tumor_volume_ml": 42.3,
+  "enhancing_tumor_volume_ml": 18.7,
+  "classification": "demo_glioma",
+  "classification_probability": 0.87,
+  "risk_score": 0.31,
+  "risk_uncertainty": 0.12,
+  "missing_modalities": ["DTI", "fMRI", "vascular imaging"],
+  "critical_structures": ["demo_structure_1"],
+  "candidate_corridors": [
+    {"id": "A", "risk": 0.18, "coverage": 0.91, "length_mm": 44},
+    {"id": "B", "risk": 0.24, "coverage": 0.96, "length_mm": 37},
+    {"id": "C", "risk": 0.31, "coverage": 0.98, "length_mm": 29}
+  ]
+}
