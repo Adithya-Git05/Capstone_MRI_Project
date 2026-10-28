@@ -30,6 +30,9 @@ sys.path.append(pipeline_path)
 import v7_risk_components as v7
 import v6_baseline
 from label_mapping import get_label_info
+from corridor_context import (
+    GENERIC_LABELS, build_structure_overlays, load_tract_masks, nearby_structures,
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE 18: QC — strict registration checking
@@ -64,6 +67,8 @@ def run_strict_qc(mri_nii, tumor_nii, labels_nii, dti_nii=None, tract_dir=None):
     if dti_nii is not None:
         report["mri_vs_dti"] = check_pair("MRI", mri_nii, "DTI", dti_nii)
         report["dti_available"] = True
+        if not report["mri_vs_dti"]["all_pass"]:
+            fail_reasons.append("DTI registration mismatch")
     else:
         report["dti_available"] = False
         report["mri_vs_dti"] = {"all_pass": False, "reason": "DTI not provided"}
@@ -73,7 +78,7 @@ def run_strict_qc(mri_nii, tumor_nii, labels_nii, dti_nii=None, tract_dir=None):
     if tract_dir and os.path.isdir(tract_dir):
         tract_files = [f for f in os.listdir(tract_dir) if f.endswith(('.nii', '.nii.gz'))]
         tract_check = {}
-        for tf in tract_files[:3]:  # check first 3
+        for tf in tract_files:
             tname = tf.replace('.nii.gz','').replace('.nii','')
             t_nii = nib.load(os.path.join(tract_dir, tf))
             r = check_pair("MRI", mri_nii, f"Tract:{tname}", t_nii)
@@ -90,6 +95,8 @@ def run_strict_qc(mri_nii, tumor_nii, labels_nii, dti_nii=None, tract_dir=None):
         report["mri_vs_tumor"]["all_pass"],
         report["mri_vs_parcellation"]["all_pass"],
     ]
+    if dti_nii is not None:
+        critical_checks.append(report["mri_vs_dti"]["all_pass"])
     report["all_critical_passed"] = bool(all(critical_checks) and tract_reg_ok)
     report["fail_reasons"] = fail_reasons
 
@@ -287,7 +294,6 @@ def build_evidence_status(qc_res, t_available, has_dti):
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE 8: Structure-level risk table — filters generic tissue
 # ─────────────────────────────────────────────────────────────────────────────
-GENERIC_LABELS = {"Brain-Tissue", "Unknown", "Background", "CSF", "WM-hypointensities"}
 
 def build_structure_risk_table(labels_data, d_tumor_mm, G_x, S_x, T_x, C_x,
                                R_enhanced, thresholds, cfg, evidence_status,
@@ -639,7 +645,7 @@ def run_ablation_af(G_x, S_x, T_x, C_x, brain_mask, tumor_binary,
     }
 
     results = []
-    slice_z = 105
+    slice_z = G_x.shape[2] // 2
 
     fig, axes = plt.subplots(2, 3, figsize=(18, 10), facecolor="#0e1117")
     axes = axes.flatten()
@@ -786,8 +792,46 @@ def pareto_analysis(corridor_records):
     return pareto
 
 
+def write_corridor_paths(json_path, pareto_records, corridor_details, target,
+                         affine, voxel_spacing):
+    """Save corridor centerlines in millimetres plus the structures each passes near."""
+    corridors = []
+    for rec in pareto_records:
+        detail = corridor_details[rec["corridor_id"]]
+        path_world = nib.affines.apply_affine(affine, np.array(detail["path_voxels"], float))
+        corridors.append({
+            "corridor_id": rec["corridor_id"],
+            "name": rec["corridor_name"],
+            "pareto_efficient": bool(rec["pareto_efficient"]),
+            "length_mm": rec["length_mm"],
+            "mean_risk": rec["mean_risk"],
+            "max_risk": rec["max_risk"],
+            "tract_risk": rec["tract_risk"],
+            "eloquent_risk": rec["eloquent_risk"],
+            "tumor_coverage": rec["tumor_coverage"],
+            "composite_cost": rec["composite_cost"],
+            "entry_voxel": rec["entry_point"],
+            "path_world_mm": [[round(float(v), 2) for v in pt] for pt in path_world],
+            "nearby_structures": detail["nearby_structures"],
+        })
+    target_world = nib.affines.apply_affine(affine, np.array(target, float))
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "coordinate_space": "NIfTI affine transformed to RAS+ millimeters",
+            "voxel_spacing_mm": [float(v) for v in voxel_spacing],
+            "target": {
+                "voxel": [int(v) for v in target],
+                "world_mm": [round(float(v), 2) for v in target_world],
+            },
+            "corridors": corridors,
+            "note": ("Computer-generated candidate trajectories for research. "
+                     "Not a surgical plan; lowest composite cost is not the safest path."),
+        }, f, indent=2)
+
+
 def plan_corridors_v8(risk_map, tumor_binary, brain_mask, T_x, C_x,
-                      cfg, affine, voxel_spacing, out_dir):
+                      cfg, affine, voxel_spacing, out_dir,
+                      labels_data=None, tract_masks=None):
     """Phases 12–16: Multi-corridor A* + Pareto analysis."""
     import matplotlib
     matplotlib.use("Agg")
@@ -846,8 +890,11 @@ def plan_corridors_v8(risk_map, tumor_binary, brain_mask, T_x, C_x,
 
     corridor_volume = np.zeros(risk_map.shape, dtype=np.uint8)
     raw_records = []
+    corridor_details = {}
+    target = tuple(int(v) for v in target)
 
     for cid, (cname, entry) in enumerate(candidate_entries, 1):
+        entry = tuple(int(v) for v in entry)
         path = astar_3d(risk_map, entry, target, voxel_spacing)
         if not path:
             print(f"    [CORRIDOR] A* found no path for {cname}")
@@ -882,6 +929,12 @@ def plan_corridors_v8(risk_map, tumor_binary, brain_mask, T_x, C_x,
             c_weights.get("w_ventricle", 0.15) * vent_r -
             c_weights.get("w_coverage", 0.20) * coverage
         )
+
+        corridor_details[cid] = {
+            "path_voxels": [[int(v) for v in pt] for pt in path],
+            "nearby_structures": nearby_structures(
+                c_mask, voxel_spacing, labels_data, tract_masks),
+        }
 
         raw_records.append({
             "corridor_id": cid,
@@ -923,6 +976,10 @@ def plan_corridors_v8(risk_map, tumor_binary, brain_mask, T_x, C_x,
         writer = csv.DictWriter(f, fieldnames=list(pareto_records[0].keys()))
         writer.writeheader()
         writer.writerows(pareto_records)
+
+    write_corridor_paths(
+        os.path.join(out_dir, "corridor_paths.json"),
+        pareto_records, corridor_details, target, affine, voxel_spacing)
 
     # Save NIfTI mask
     nii_path = os.path.join(out_dir, "candidate_corridors.nii.gz")
@@ -1155,11 +1212,26 @@ def run_pipeline(config_path="config_v7.json"):
     weights = cfg["weights"]
     thresholds = cfg["risk_thresholds"]
 
-    out_validated = os.path.join(project_root, "outputs", "V7_VALIDATED")
-    out_corridors = os.path.join(project_root, "outputs", "V8_CORRIDORS")
-    out_ablation = os.path.join(project_root, "outputs", "V8_ablation")
-    out_comparison = os.path.join(project_root, "outputs", "V8_comparison")
-    out_qc = os.path.join(project_root, "outputs", "V8_qc")
+    out_validated = os.path.abspath(os.path.join(
+        project_root,
+        paths.get("output_dir_v7_validated", os.path.join("outputs", "V7_VALIDATED")),
+    ))
+    out_corridors = os.path.abspath(os.path.join(
+        project_root,
+        paths.get("output_dir_v8_corridors", os.path.join("outputs", "V8_CORRIDORS")),
+    ))
+    out_ablation = os.path.abspath(os.path.join(
+        project_root,
+        paths.get("output_dir_v8_ablation", os.path.join("outputs", "V8_ablation")),
+    ))
+    out_comparison = os.path.abspath(os.path.join(
+        project_root,
+        paths.get("output_dir_v8_comparison", os.path.join("outputs", "V8_comparison")),
+    ))
+    out_qc = os.path.abspath(os.path.join(
+        project_root,
+        paths.get("output_dir_v8_qc", os.path.join("outputs", "V8_qc")),
+    ))
     out_vis = os.path.join(out_validated, "visualizations")
 
     for d in [out_validated, out_corridors, out_ablation, out_comparison, out_qc, out_vis]:
@@ -1178,11 +1250,19 @@ def run_pipeline(config_path="config_v7.json"):
     labels_nii = nib.load(os.path.join(project_root, paths["synthseg_labels"]))
 
     dti_nii = None
-    dti_path = os.path.join(project_root, paths.get("dti_fa", ""))
-    if os.path.exists(dti_path):
+    dti_value = paths.get("dti_fa")
+    if dti_value:
+        dti_path = os.path.join(project_root, dti_value)
+        if not os.path.isfile(dti_path):
+            raise FileNotFoundError(f"Configured DTI volume does not exist: {dti_path}")
         dti_nii = nib.load(dti_path)
 
-    tract_dir = os.path.join(project_root, paths.get("tract_masks", ""))
+    tract_dir = None
+    tract_value = paths.get("tract_masks")
+    if tract_value:
+        tract_dir = os.path.join(project_root, tract_value)
+        if not os.path.isdir(tract_dir):
+            raise FileNotFoundError(f"Configured tract-mask directory does not exist: {tract_dir}")
 
     # PHASE 18: Strict QC
     qc_res = run_strict_qc(mri_nii, tumor_nii, labels_nii, dti_nii, tract_dir)
@@ -1350,13 +1430,33 @@ def run_pipeline(config_path="config_v7.json"):
 
     # ── PHASES 12–16: Corridors + Pareto ─────────────────────────────────
     print("\n>>> PHASES 12–16: Surgical corridor planning + Pareto analysis...")
+    tract_masks = load_tract_masks(tract_dir, labels_data.shape)
     pareto_records, corridor_nii_path = plan_corridors_v8(
         R_enhanced, tumor_binary, brain_mask, T_x, C_x,
-        cfg, affine, voxel_spacing, out_corridors)
+        cfg, affine, voxel_spacing, out_corridors,
+        labels_data=labels_data, tract_masks=tract_masks)
+    structure_overlays = build_structure_overlays(
+        structure_records, labels_data, tract_masks)
 
     # ── QC JSON for validated dir ─────────────────────────────────────────
     with open(os.path.join(out_validated, "qc_report.json"), "w") as f:
         json.dump(qc_res, f, indent=2)
+
+    # ── Interactive 3D report ──
+    from risk_report_3d import generate_risk_3d_report
+
+    interactive_report = generate_risk_3d_report(
+        os.path.join(project_root, paths["mri_image"]),
+        os.path.join(project_root, paths["tumor_mask"]),
+        os.path.join(out_validated, "enhanced_risk_map.nii.gz"),
+        os.path.join(out_corridors, "risk_3d_viewer.html"),
+        corridors_path=(
+            os.path.join(out_corridors, "corridor_paths.json") if pareto_records else None
+        ),
+        corridor_volume_path=corridor_nii_path,
+        structure_overlays=structure_overlays,
+    )
+    print(f"  Interactive 3D report : {interactive_report['html_report']}")
 
     # ── FINAL REPORT ──────────────────────────────────────────────────────
     print("\n" + "=" * 72)
@@ -1378,6 +1478,7 @@ def run_pipeline(config_path="config_v7.json"):
         "comparison": comparison,
         "ablation": ablation_res,
         "pareto_corridors": pareto_records,
+        "interactive_3d_report": interactive_report,
     }
 
 
