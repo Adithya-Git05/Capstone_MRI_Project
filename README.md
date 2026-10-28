@@ -21,6 +21,17 @@ shims only.
 stages. Research methods and data caveats are in [`docs/`](docs/) and the
 [`technical dossier`](Capstone_Technical_Dossier/README_FIRST.md).
 
+## Run the Streamlit application
+
+Install the integration and 3D inference dependencies with
+`python -m pip install -e ".[brats,integrated]"`, then launch from the
+repository root with `python -m streamlit run app.py` using that same Python
+environment. The 3D SwinUNETR path uses CPU sliding-window inference with a
+64-cube ROI and batch size 1; four aligned MRI modalities and adequate free
+RAM are required. The selected checkpoint contract, runtime adjustments, and
+validation limits are documented in
+[`integrated_pipeline/README.md`](integrated_pipeline/README.md).
+
 ## Main environment
 
 Use Python 3.10 or newer. From the repository root in PowerShell:

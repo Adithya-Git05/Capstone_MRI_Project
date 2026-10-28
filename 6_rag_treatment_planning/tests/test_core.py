@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
+from unittest.mock import patch
 from src.bm25_retriever import BM25Retriever
 from src.chunking import chunk_text, make_chunks
 from src.patient_context import load_patient_context, patient_warnings
 from src.reranker import Reranker
 from src.verification import check_numerical_consistency, validate_citations, verify_claims, verify_evidence
-from src.llm import normalize_citations
+from src.llm import generate_response, normalize_citations
 from src.relevance import expanded_query, filter_relevant
 from src.verification import validate_patient_interpretations
 
@@ -54,6 +55,39 @@ def test_relevance_filter_removes_unrelated_evidence_and_keeps_relevant():
     assert [item["chunk_id"] for item in selected] == ["good"]
     assert diagnostics["kept_count"] == 1
 
+def test_relevance_filter_rejects_generic_brain_overlap_for_tractography_query():
+    ranked = [
+        {
+            "chunk_id": "irrelevant",
+            "paper_id": "P2",
+            "title": "Nose-brain axis",
+            "text": "The nasal cavity connects to the central nervous system.",
+            "rerank_score": 5.0,
+        },
+        {
+            "chunk_id": "relevant",
+            "paper_id": "P1",
+            "title": "Diffusion MRI tractography in brain tumors",
+            "text": "Diffusion MRI tractography can have limitations near brain tumors.",
+            "rerank_score": 0.1,
+        },
+    ]
+    selected, diagnostics = filter_relevant(
+        "What are diffusion MRI tractography limitations near brain tumors?",
+        ranked,
+        {},
+        0.35,
+        2,
+        5,
+    )
+
+    assert [item["chunk_id"] for item in selected] == ["relevant"]
+    rejected = next(
+        item for item in diagnostics["diagnostics"] if item["chunk_id"] == "irrelevant"
+    )
+    assert "insufficient overlap with the question's specific MRI topic" in rejected["reasons"]
+    assert "no tumor/neoplasm context for a tumor-focused question" in rejected["reasons"]
+
 def test_broad_query_expands_using_case_context():
     expanded = expanded_query("What are the important considerations for this case?", {"tumor_type": "glioma", "critical_structures": ["x"]})
     assert "glioma" in expanded and "tractography" in expanded
@@ -98,6 +132,65 @@ def test_citations_mark_missing_none_malformed_and_numeric_unverified():
     assert len(citations) == 4
     assert all(item["status"] == "unverified" for item in citations)
     assert len(warnings) == 4
+
+def test_llm_withholds_generated_claims_when_citation_is_not_a_retrieved_chunk():
+    evidence = [{"chunk_id": "P1_C001", "paper_id": "P1", "title": "Source", "text": "Supported passage."}]
+    generated = {
+        "summary": "Unsupported generated claim.",
+        "patient_findings": [],
+        "risk_interpretation": "",
+        "corridor_comparison": [],
+        "evidence_supported_considerations": [],
+        "uncertainties": [],
+        "missing_information": [],
+        "limitations": [],
+        "citations": [{"chunk_id": "EXACT_ID"}],
+    }
+    response = type(
+        "Response",
+        (),
+        {
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {"response": json.dumps(generated)},
+        },
+    )()
+
+    with patch("src.llm.httpx.post", return_value=response):
+        answer, warning = generate_response("Question", {}, evidence)
+
+    assert answer["summary"].startswith("The model-generated synthesis was withheld")
+    assert answer["citations"] == []
+    assert warning and "EXACT_ID" in warning
+
+def test_llm_accepts_citations_only_for_exact_retrieved_chunk_ids():
+    evidence = [{"chunk_id": "P1_C001", "paper_id": "P1", "title": "Source", "text": "DTI tractography depends on acquisition quality."}]
+    generated = {
+        "summary": "DTI tractography depends on acquisition quality.",
+        "patient_findings": [],
+        "risk_interpretation": "",
+        "corridor_comparison": [],
+        "evidence_supported_considerations": [],
+        "uncertainties": [],
+        "missing_information": [],
+        "limitations": [],
+        "citations": [{"chunk_id": "P1_C001"}],
+    }
+    response = type(
+        "Response",
+        (),
+        {
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {"response": json.dumps(generated)},
+        },
+    )()
+
+    with patch("src.llm.httpx.post", return_value=response):
+        answer, warning = generate_response("Question", {}, evidence)
+
+    assert answer["summary"] == generated["summary"]
+    assert answer["citations"][0]["chunk_id"] == "P1_C001"
+    assert answer["citations"][0]["status"] == "verified"
+    assert warning is None
 
 def test_numeric_checks_omit_missing_and_accept_matching_or_rounded_values():
     patient = {"tumor_volume_ml": 42.3, "risk_score": 0.31}

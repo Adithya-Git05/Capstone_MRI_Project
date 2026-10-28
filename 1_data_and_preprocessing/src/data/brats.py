@@ -148,7 +148,7 @@ def grouped_kfold(cases: list[BraTSCase], fold_count: int, seed: int) -> list[di
 def _load_case_arrays(
     case: BraTSCase,
     modalities: tuple[str, ...] = DEFAULT_MODALITIES,
-    orientation: str = "RAS",
+    orientation: str | None = "RAS",
     normalize: bool = True,
     region_labels: dict[str, list[int] | tuple[int, ...]] | None = None,
     require_label: bool = True,
@@ -180,14 +180,14 @@ def _load_case_arrays(
             image.affine, reference_affine, atol=1e-4
         ):
             raise ValueError(f"BraTS modalities do not share shape and affine for {case.case_id}")
-        source_orientation = nib.orientations.io_orientation(image.affine)
-        target_orientation = axcodes2ornt(tuple(orientation))
-        transform = ornt_transform(source_orientation, target_orientation)
+        data = image.get_fdata(dtype=np.float32, caching="unchanged")
+        if orientation is not None:
+            source_orientation = nib.orientations.io_orientation(image.affine)
+            target_orientation = axcodes2ornt(tuple(orientation))
+            transform = ornt_transform(source_orientation, target_orientation)
+            data = nib.orientations.apply_orientation(data, transform)
         array = np.asarray(
-            nib.orientations.apply_orientation(
-                image.get_fdata(dtype=np.float32, caching="unchanged"), transform
-            ),
-            dtype=np.float32 if modality != "seg" else np.int16,
+            data, dtype=np.float32 if modality != "seg" else np.int16
         )
         modality_arrays[modality] = array
 
@@ -211,14 +211,17 @@ def _load_case_arrays(
 
     images = np.stack(channels, axis=0).astype(np.float32, copy=False)
     regions = build_region_masks(label, region_labels)
-    affine_oriented = nib.orientations.inv_ornt_aff(
-        ornt_transform(
-            nib.orientations.io_orientation(reference_affine),
-            axcodes2ornt(tuple(orientation)),
-        ),
-        reference_shape,
-    )
-    output_affine = reference_affine @ affine_oriented
+    if orientation is None:
+        output_affine = reference_affine.copy()
+    else:
+        affine_oriented = nib.orientations.inv_ornt_aff(
+            ornt_transform(
+                nib.orientations.io_orientation(reference_affine),
+                axcodes2ornt(tuple(orientation)),
+            ),
+            reference_shape,
+        )
+        output_affine = reference_affine @ affine_oriented
     spacing = tuple(float(v) for v in reference_header.get_zooms()[:3])
     return images, regions, output_affine, spacing
 
@@ -287,17 +290,87 @@ def load_full_volume(
 def load_input_volume(
     case: BraTSCase,
     modalities: tuple[str, ...] = DEFAULT_MODALITIES,
-    orientation: str = "RAS",
+    orientation: str | None = "RAS",
 ) -> dict[str, Any]:
+    if orientation is None:
+        try:
+            import nibabel as nib
+        except ImportError as error:
+            raise RuntimeError("BraTS volume loading requires nibabel") from error
+        if len(modalities) != 4 or len(set(modalities)) != 4:
+            raise ValueError("Expected four unique MRI modalities.")
+
+        reference_shape = None
+        reference_affine = None
+        reference_header = None
+        images = None
+        spacing = None
+        for channel, modality in enumerate(modalities):
+            path = case.directory / f"{case.case_id}-{modality}.nii.gz"
+            if not path.is_file():
+                raise FileNotFoundError(f"Missing BraTS modality {modality}: {path}")
+            nifti = nib.load(str(path), mmap=True)
+            if len(nifti.shape) != 3:
+                raise ValueError(f"{modality} must be a 3D volume; received {nifti.shape}.")
+            affine = np.asarray(nifti.affine, dtype=np.float64)
+            if reference_shape is None:
+                reference_shape = tuple(int(size) for size in nifti.shape)
+                reference_affine = affine.copy()
+                reference_header = nifti.header.copy()
+                spacing = tuple(float(value) for value in nifti.header.get_zooms()[:3])
+                images = np.empty((len(modalities), *reference_shape), dtype=np.float32)
+            elif nifti.shape != reference_shape or not np.allclose(
+                affine, reference_affine, atol=1e-4
+            ):
+                raise ValueError(
+                    f"BraTS modalities do not share shape and affine for {case.case_id}"
+                )
+            data = nifti.get_fdata(dtype=np.float32, caching="unchanged")
+            if not np.isfinite(data).all():
+                raise ValueError(f"{modality} contains non-finite voxel values.")
+            nonzero = data != 0
+            if not nonzero.any():
+                raise ValueError(f"{modality} is entirely zero-valued.")
+            mean = float(np.mean(data, where=nonzero, dtype=np.float64))
+            std = float(np.std(data, where=nonzero, dtype=np.float64))
+            if std > 1e-8:
+                np.subtract(data, mean, out=data)
+                np.divide(data, std, out=data)
+                data[~nonzero] = 0.0
+            else:
+                data.fill(0.0)
+            images[channel] = data
+            del data, nonzero, nifti
+
+        assert images is not None
+        return {
+            "image": torch.from_numpy(images),
+            "case_id": case.case_id,
+            "patient_group": case.patient_group,
+            "affine": reference_affine,
+            "spacing": spacing,
+            "header": reference_header,
+            "orientation": None,
+        }
+
     images, _, affine, spacing = _load_case_arrays(
         case, modalities, orientation, require_label=False
     )
+    try:
+        import nibabel as nib
+    except ImportError as error:
+        raise RuntimeError("BraTS volume loading requires nibabel") from error
+    reference_header = nib.load(
+        str(case.directory / f"{case.case_id}-{modalities[0]}.nii.gz")
+    ).header.copy()
     return {
         "image": torch.from_numpy(images),
         "case_id": case.case_id,
         "patient_group": case.patient_group,
         "affine": affine,
         "spacing": spacing,
+        "header": reference_header,
+        "orientation": orientation,
     }
 
 

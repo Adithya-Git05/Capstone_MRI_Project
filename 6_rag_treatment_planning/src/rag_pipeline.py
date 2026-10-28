@@ -76,7 +76,35 @@ class RAGPipeline:
             warnings.append("One or more generated claims could not be automatically supported by cited passages.")
         if numerical_checks.get("discrepancy_count"):
             warnings.append("One or more patient-specific numerical values differ from the supplied patient context.")
-        warnings.extend(validate_patient_interpretations(answer, patient))
+        interpretation_warnings = validate_patient_interpretations(answer, patient)
+        warnings.extend(interpretation_warnings)
+        if (
+            claim_verification.get("unsupported_claim_count")
+            or numerical_checks.get("discrepancy_count")
+            or interpretation_warnings
+        ):
+            warnings.append(
+                "Generated synthesis was withheld because automated checks found unsupported "
+                "claims or patient-context inconsistencies; review retrieved passages directly."
+            )
+            citations = []
+            answer = {
+                "summary": (
+                    "The model-generated synthesis was withheld because its claims did not "
+                    "pass the available consistency checks. Retrieved passages are shown "
+                    "separately and should be reviewed directly."
+                ),
+                "patient_findings": [],
+                "risk_interpretation": "",
+                "corridor_comparison": [],
+                "evidence_supported_considerations": [],
+                "uncertainties": [
+                    "No generated claim is presented as supported for this response."
+                ],
+                "missing_information": [],
+                "limitations": ["Automated checks are not clinical validation."],
+                "citations": [],
+            }
         return {
             "answer": answer,
             "citations": citations,

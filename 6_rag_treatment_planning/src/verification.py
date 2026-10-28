@@ -40,7 +40,7 @@ def _claim_items(answer: dict[str, Any]) -> list[tuple[str, str, list[str]]]:
             continue
         values = value if isinstance(value, list) else [value]
         for item in values:
-            if isinstance(item, str):
+            if isinstance(item, str) and item.strip():
                 claims.append((field, item, []))
             elif isinstance(item, dict):
                 text = item.get("claim") or item.get("statement") or item.get("text")

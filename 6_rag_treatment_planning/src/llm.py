@@ -3,7 +3,7 @@ import httpx
 from typing import Any
 from .config import OLLAMA_BASE_URL, OLLAMA_MODEL
 
-SYSTEM_PROMPT = """You are an evidence-synthesis component for a research prototype, not a doctor. Use only sufficiently relevant supplied evidence and patient values. For every literature claim, cite the exact supplied chunk_id in this format: {"chunk_id":"EXACT_ID"}. Do not use bibliography numbers such as [9] or 9 as citations. If no exact supplied chunk_id supports a claim, leave citations empty and state that the claim is unverified. Do not invent citations, numerical values, diagnoses, risk, safety, or surgical decisions. Never label a supplied risk score low, moderate, or high unless a documented validated threshold is supplied. Treat synthetic scores and classification probabilities as illustrative, uncalibrated demo outputs, not clinical recommendations. Do not choose a surgical corridor from synthetic risk, coverage, or length values. Do not infer age, sex, tumor location, histology, neurological status, or imaging findings. Keep patient facts separate from general literature findings, mention missing data and conflicting evidence, and say when evidence is insufficient. Return valid JSON with keys: summary, patient_findings, risk_interpretation, corridor_comparison, evidence_supported_considerations, uncertainties, missing_information, limitations, citations."""
+SYSTEM_PROMPT = """You are an evidence-synthesis component for a research prototype, not a doctor. Use only sufficiently relevant supplied evidence and patient values. The input lists the only allowed source identifiers in available_chunk_ids. Cite a literature claim only by copying an exact identifier from that list. Return citations as a list of objects with a chunk_id field. Never output a placeholder, example identifier, bibliography number, or identifier not in that list. If no supplied passage supports a claim, leave citations empty and state that evidence is insufficient. Do not invent citations, numerical values, diagnoses, risk, safety, or surgical decisions. Never label a supplied risk score low, moderate, or high unless a documented validated threshold is supplied. Treat synthetic scores and classification probabilities as illustrative, uncalibrated demo outputs, not clinical recommendations. Do not choose a surgical corridor from synthetic risk, coverage, or length values. Do not infer age, sex, tumor location, histology, neurological status, or imaging findings. Keep patient facts separate from general literature findings, mention missing data and conflicting evidence, and say when evidence is insufficient. Return valid JSON with keys: summary, patient_findings, risk_interpretation, corridor_comparison, evidence_supported_considerations, uncertainties, missing_information, limitations, citations."""
 ANSWER_KEYS = {
     "summary", "patient_findings", "risk_interpretation", "corridor_comparison",
     "evidence_supported_considerations", "uncertainties", "missing_information",
@@ -108,13 +108,50 @@ def generate_response(question: str, patient: dict[str, Any], evidence: list[dic
         "available_chunk_ids": [item.get("chunk_id") for item in evidence],
         "retrieved_evidence": _prompt_evidence(evidence),
     }
-    prompt = SYSTEM_PROMPT + "\nINPUT:\n" + json.dumps(context, indent=2)
+    citation_example = json.dumps(
+        {"citations": [{"chunk_id": str(evidence[0].get("chunk_id", ""))}]}
+    )
+    prompt = (
+        SYSTEM_PROMPT
+        + "\nCITATION FORMAT EXAMPLE USING A REAL RETRIEVED ID; use it only if the passage supports the claim: "
+        + citation_example
+        + "\nINPUT:\n"
+        + json.dumps(context, indent=2)
+    )
     try:
         response = httpx.post(f"{OLLAMA_BASE_URL}/api/generate", json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False, "format": "json"}, timeout=90)
         response.raise_for_status()
         value = _parse_answer(response.json())
         citations, citation_warnings = normalize_citations(value.get("citations"), evidence)
+        if citation_warnings or not citations:
+            warning = (
+                "Generated text was withheld because it supplied no verifiable citation "
+                "to the retrieved passages."
+                if not citations
+                else "Generated text was withheld because one or more citations did not "
+                "match the retrieved passages."
+            )
+            details = " ".join(citation_warnings)
+            return (
+                {
+                    "summary": (
+                        "The model-generated synthesis was withheld because its citations "
+                        "could not be verified against retrieved sources."
+                    ),
+                    "patient_findings": [],
+                    "risk_interpretation": "",
+                    "corridor_comparison": [],
+                    "evidence_supported_considerations": [],
+                    "uncertainties": [
+                        "Review the retrieved passages directly; no generated claim is presented as supported."
+                    ],
+                    "missing_information": [],
+                    "limitations": ["Automated literature retrieval is not clinical validation."],
+                    "citations": [],
+                },
+                " ".join(part for part in (warning, details) if part),
+            )
         value["citations"] = citations
-        return value, " ".join(citation_warnings) if citation_warnings else None
+        return value, None
     except (httpx.HTTPError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         return {}, f"Ollama response could not be used: {exc}"

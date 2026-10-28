@@ -22,6 +22,10 @@ NON_PLANNING_TERMS = {
     "treatment", "therapy", "therapeutic", "molecular", "signaling",
     "survival", "bone", "joint", "nasal", "empathy", "injury",
 }
+TUMOR_TERMS = {
+    "tumor", "tumors", "glioma", "gliomas", "glioblastoma",
+    "neoplasm", "neoplasms", "lesion", "lesions",
+}
 CASE_TERMS = (
     "glioma surgical planning extent of resection critical structures "
     "functional mapping DTI tractography vascular anatomy surgical corridor"
@@ -56,6 +60,8 @@ def score_relevance(
     query_tokens = _meaningful_tokens(question)
     overlap = len(query_tokens & text_tokens) / max(len(query_tokens), 1)
     domain_overlap = len(text_tokens & DOMAIN_TERMS) / max(len(DOMAIN_TERMS), 1)
+    query_domain_terms = query_tokens & DOMAIN_TERMS
+    matching_domain_terms = query_domain_terms & text_tokens
     planning_overlap = text_tokens & PLANNING_TERMS
     normalized_rerank = 1.0 / (1.0 + pow(2.718281828, -rerank_score))
     score = 0.55 * overlap + 0.25 * normalized_rerank + 0.20 * min(domain_overlap * 4, 1.0)
@@ -68,6 +74,13 @@ def score_relevance(
     if not text_tokens & DOMAIN_TERMS:
         score *= 0.25
         reasons.append("no glioma/neurosurgical domain signal")
+    minimum_domain_matches = 1 if len(query_domain_terms) <= 2 else 2
+    if len(matching_domain_terms) < minimum_domain_matches:
+        score *= 0.25
+        reasons.append("insufficient overlap with the question's specific MRI topic")
+    if query_tokens & TUMOR_TERMS and not text_tokens & TUMOR_TERMS:
+        score *= 0.15
+        reasons.append("no tumor/neoplasm context for a tumor-focused question")
     planning_question = any(
         term in question.lower()
         for term in ("surg", "corridor", "critical structure", "case")

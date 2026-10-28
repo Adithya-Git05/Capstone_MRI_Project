@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import csv
+import codecs
+import gc
+import inspect
 import json
+import os
+import pickle
 from pathlib import Path
+import time
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -35,6 +41,516 @@ from src.segmentation3d.models import build_monai_model
 
 
 ONTOLOGY_ID = "brats_post_treatment_composites_v1"
+
+
+def _safe_checkpoint_globals() -> list[type[Any] | Any]:
+    numpy_core = getattr(np, "_core", np.core)
+    safe: list[type[Any] | Any] = [
+        numpy_core.multiarray.scalar,
+        np.dtype,
+        np.float32,
+        np.float64,
+        np.int64,
+        codecs.encode,
+    ]
+    numpy_dtypes = getattr(np, "dtypes", None)
+    if numpy_dtypes is not None:
+        for name in ("Float32DType", "Float64DType"):
+            dtype = getattr(numpy_dtypes, name, None)
+            if dtype is not None:
+                safe.append(dtype)
+    return safe
+
+
+def _load_model_card_checkpoint(checkpoint_path: Path) -> tuple[dict[str, Any], dict[str, torch.Tensor]]:
+    try:
+        with torch.serialization.safe_globals(_safe_checkpoint_globals()):
+            checkpoint = torch.load(
+                checkpoint_path,
+                map_location="cpu",
+                weights_only=True,
+                mmap=True,
+            )
+    except (OSError, RuntimeError, ValueError, pickle.UnpicklingError) as error:
+        raise ValueError(f"Could not safely read the SwinUNETR checkpoint: {error}") from error
+    if not isinstance(checkpoint, dict) or not isinstance(checkpoint.get("state_dict"), dict):
+        raise ValueError("The pretrained checkpoint must contain a state_dict mapping.")
+    state_dict = checkpoint["state_dict"]
+    if not state_dict or not all(isinstance(value, torch.Tensor) for value in state_dict.values()):
+        raise ValueError("The checkpoint state_dict must contain only tensor weights.")
+    if all(key.startswith("net.") for key in state_dict):
+        state_dict = {key.removeprefix("net."): value for key, value in state_dict.items()}
+    elif any(key.startswith("net.") for key in state_dict):
+        raise ValueError("Checkpoint state_dict mixes wrapped and unwrapped parameter names.")
+    return checkpoint, state_dict
+
+
+def _build_model_card_model(model_spec: dict[str, Any]) -> torch.nn.Module:
+    modalities = model_spec.get("input_modalities")
+    output_order = model_spec.get("output_order")
+    inference = model_spec.get("inference")
+    if (
+        model_spec.get("architecture") != "SwinUNETR"
+        or not isinstance(modalities, list)
+        or len(modalities) != 4
+        or not isinstance(output_order, list)
+        or len(output_order) != 3
+        or "RC" in output_order
+        or not isinstance(inference, dict)
+    ):
+        raise ValueError("The registry does not describe the documented 4-in/3-out checkpoint.")
+    feature_size = model_spec.get("feature_size")
+    if not isinstance(feature_size, int) or feature_size <= 0:
+        raise ValueError("The SwinUNETR feature_size is missing from the model registry.")
+    roi_size = inference.get("roi_size")
+    if (
+        not isinstance(roi_size, list)
+        or len(roi_size) != 3
+        or any(not isinstance(value, int) or value < 32 or value % 32 for value in roi_size)
+    ):
+        raise ValueError("The SwinUNETR inference ROI must contain three dimensions.")
+    return build_monai_model(
+        "swinunetr",
+        patch_size=tuple(int(value) for value in roi_size),
+        in_channels=4,
+        out_channels=3,
+        feature_size=feature_size,
+    )
+
+
+def verify_model_card_checkpoint(
+    checkpoint_path: Path, model_spec: dict[str, Any]
+) -> dict[str, Any]:
+    """Strictly match the inspected checkpoint tensors to the documented model."""
+    checkpoint_path = Path(checkpoint_path).expanduser().resolve()
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(f"3D segmentation checkpoint not found: {checkpoint_path}")
+    checkpoint, state_dict = _load_model_card_checkpoint(checkpoint_path)
+    model = _build_model_card_model(model_spec)
+    try:
+        load_parameters = inspect.signature(model.load_state_dict).parameters
+        load_options = {"strict": True}
+        if "assign" in load_parameters:
+            load_options["assign"] = True
+        model.load_state_dict(state_dict, **load_options)
+    except RuntimeError as error:
+        raise ValueError(
+            "The checkpoint tensors are not strictly compatible with the configured "
+            f"MONAI SwinUNETR: {error}"
+        ) from error
+    input_shape = tuple(state_dict["swinViT.patch_embed.proj.weight"].shape)
+    output_shape = tuple(state_dict["out.conv.conv.weight"].shape)
+    if input_shape[1] != 4 or input_shape[0] != model_spec["feature_size"]:
+        raise ValueError(f"Unexpected SwinUNETR input projection shape: {input_shape}.")
+    if output_shape[0] != 3:
+        raise ValueError(f"Expected three output channels; received {output_shape}.")
+    result = {
+        "status": "compatible",
+        "checkpoint": str(checkpoint_path),
+        "checkpoint_key": "state_dict",
+        "state_dict_tensor_count": len(state_dict),
+        "input_projection_shape": list(input_shape),
+        "output_head_shape": list(output_shape),
+        "prefix_removed": "net." if all(key.startswith("net.") for key in checkpoint["state_dict"]) else None,
+        "torch_version": torch.__version__,
+        "monai_version": __import__("monai").__version__,
+        "strict_load": "All keys matched successfully",
+    }
+    del model, state_dict, checkpoint
+    gc.collect()
+    return result
+
+
+def _available_memory_bytes() -> int:
+    if os.name == "nt":
+        import ctypes
+
+        class MemoryStatus(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        status = MemoryStatus()
+        status.dwLength = ctypes.sizeof(MemoryStatus)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            raise RuntimeError("Could not determine available system memory.")
+        return int(status.ullAvailPhys)
+    try:
+        return int(os.sysconf("SC_AVPHYS_PAGES") * os.sysconf("SC_PAGE_SIZE"))
+    except (AttributeError, OSError, ValueError) as error:
+        raise RuntimeError("Could not determine available system memory.") from error
+
+
+def _check_inference_memory(
+    checkpoint_path: Path,
+    image: torch.Tensor,
+    output_channels: int,
+    roi_size: tuple[int, int, int],
+) -> dict[str, int]:
+    available = _available_memory_bytes()
+    checkpoint_bytes = checkpoint_path.stat().st_size
+    image_bytes = image.numel() * image.element_size()
+    output_bytes = output_channels * int(np.prod(image.shape[1:])) * 4
+    roi_working_bytes = 4 * int(np.prod(roi_size)) * 4 * 64
+    reserve_bytes = 256 * 1024**2
+    required = (
+        2 * checkpoint_bytes
+        + image_bytes
+        + 2 * output_bytes
+        + roi_working_bytes
+        + reserve_bytes
+    )
+    if available < required:
+        raise MemoryError(
+            "3D CPU inference was not started: available RAM is "
+            f"{available / 1024**3:.2f} GiB; the estimated working set for one "
+            f"{roi_size[0]}x{roi_size[1]}x{roi_size[2]} window is "
+            f"{required / 1024**3:.2f} GiB. Free RAM and retry, or use a machine with "
+            "more memory. This estimate is conservative but cannot guarantee that "
+            "inference will fit."
+        )
+    return {
+        "available_bytes": available,
+        "estimated_minimum_bytes": required,
+        "input_bytes": image_bytes,
+        "output_bytes": output_bytes,
+        "roi_working_bytes": roi_working_bytes,
+        "reserve_bytes": reserve_bytes,
+    }
+
+
+def _resolve_inference_device(device: str | torch.device) -> torch.device:
+    if str(device) == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    selected = torch.device(device)
+    if selected.type not in {"cpu", "cuda"}:
+        raise ValueError("3D inference supports only CPU or CUDA devices.")
+    if selected.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA inference was requested, but CUDA is unavailable.")
+    if selected.type == "cuda" and (
+        selected.index is not None and selected.index >= torch.cuda.device_count()
+    ):
+        raise ValueError(f"CUDA device index {selected.index} is not available.")
+    return selected
+
+
+def _check_cuda_inference_memory(
+    checkpoint_path: Path,
+    image: torch.Tensor,
+    roi_size: tuple[int, int, int],
+    device: torch.device,
+) -> dict[str, int]:
+    free_bytes, total_bytes = torch.cuda.mem_get_info(device)
+    checkpoint_bytes = checkpoint_path.stat().st_size
+    image_bytes = image.numel() * image.element_size()
+    output_bytes = 3 * int(np.prod(image.shape[1:])) * 4
+    roi_working_bytes = 4 * int(np.prod(roi_size)) * 4 * 64
+    reserve_bytes = 256 * 1024**2
+    required = checkpoint_bytes + output_bytes + roi_working_bytes + reserve_bytes
+    if free_bytes < required:
+        raise MemoryError(
+            "3D CUDA inference was not started: available GPU memory is "
+            f"{free_bytes / 1024**3:.2f} GiB; the estimated minimum is "
+            f"{required / 1024**3:.2f} GiB for one {roi_size[0]}x{roi_size[1]}x"
+            f"{roi_size[2]} window. Use a GPU with more memory or select CPU."
+        )
+    return {
+        "available_bytes": int(free_bytes),
+        "total_bytes": int(total_bytes),
+        "estimated_minimum_bytes": int(required),
+        "checkpoint_bytes": int(checkpoint_bytes),
+        "input_bytes": int(image_bytes),
+        "output_bytes": int(output_bytes),
+        "roi_working_bytes": int(roi_working_bytes),
+        "reserve_bytes": int(reserve_bytes),
+    }
+
+
+def _cuda_memory_usage(device: torch.device) -> dict[str, int] | None:
+    if device.type != "cuda":
+        return None
+    free_bytes, total_bytes = torch.cuda.mem_get_info(device)
+    return {
+        "available_bytes": int(free_bytes),
+        "total_bytes": int(total_bytes),
+        "allocated_bytes": int(torch.cuda.memory_allocated(device)),
+        "reserved_bytes": int(torch.cuda.memory_reserved(device)),
+        "peak_allocated_bytes": int(torch.cuda.max_memory_allocated(device)),
+    }
+
+
+def _process_memory_usage() -> dict[str, int]:
+    if os.name != "nt":
+        return {}
+    import ctypes
+
+    class ProcessMemoryCounters(ctypes.Structure):
+        _fields_ = [
+            ("cb", ctypes.c_ulong),
+            ("PageFaultCount", ctypes.c_ulong),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+            ("PrivateUsage", ctypes.c_size_t),
+        ]
+
+    counters = ProcessMemoryCounters()
+    counters.cb = ctypes.sizeof(counters)
+    kernel32 = ctypes.windll.kernel32
+    psapi = ctypes.windll.psapi
+    kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+    psapi.GetProcessMemoryInfo.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ProcessMemoryCounters),
+        ctypes.c_ulong,
+    ]
+    psapi.GetProcessMemoryInfo.restype = ctypes.c_int
+    process = kernel32.GetCurrentProcess()
+    if not psapi.GetProcessMemoryInfo(
+        process, ctypes.byref(counters), counters.cb
+    ):
+        raise RuntimeError("Could not determine current process memory usage.")
+    return {
+        "working_set_bytes": int(counters.WorkingSetSize),
+        "peak_working_set_bytes": int(counters.PeakWorkingSetSize),
+    }
+
+
+def _save_pretrained_visualization(
+    output_dir: Path,
+    input_slice: np.ndarray,
+    probability_slices: np.ndarray,
+    output_order: list[str],
+    threshold: float,
+) -> None:
+    figure, axes = plt.subplots(1, len(output_order) + 1, figsize=(4 * (len(output_order) + 1), 4))
+    axes[0].imshow(input_slice, cmap="gray")
+    axes[0].set_title("T1ce input")
+    axes[0].axis("off")
+    colors = {"ET": "red", "TC": "lime", "WT": "cyan"}
+    from matplotlib.colors import to_rgba
+
+    for axis, name, probability_slice in zip(axes[1:], output_order, probability_slices):
+        axis.imshow(input_slice, cmap="gray")
+        mask = probability_slice >= threshold
+        overlay = np.zeros((*mask.shape, 4), dtype=np.float32)
+        overlay[mask] = to_rgba(colors.get(name, "red"), alpha=0.5)
+        axis.imshow(overlay)
+        axis.set_title(f"{name} mask")
+        axis.axis("off")
+    figure.tight_layout()
+    figure.savefig(output_dir / "segmentation_visualization.png", dpi=120)
+    plt.close(figure)
+
+
+def predict_model_card_case(
+    checkpoint_path: Path,
+    case_directory: Path,
+    output_dir: Path,
+    model_spec: dict[str, Any],
+    device: str | torch.device = "cpu",
+) -> Path:
+    """Run low-memory SwinUNETR inference and save native-space ET/TC/WT masks."""
+    from src.data.brats import load_input_volume
+
+    checkpoint_path = Path(checkpoint_path).expanduser().resolve()
+    case_directory = Path(case_directory).resolve()
+    _require_new_or_empty_output_dir(output_dir)
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(f"3D segmentation checkpoint not found: {checkpoint_path}")
+    modalities = tuple(model_spec["input_modalities"])
+    case = BraTSCase(
+        case_id=case_directory.name,
+        patient_group=case_directory.name.rsplit("-", 1)[0],
+        directory=case_directory,
+    )
+    volume = load_input_volume(case, modalities=modalities, orientation=None)
+    image = volume["image"].to(dtype=torch.float32)
+    if image.ndim != 4 or image.shape[0] != 4 or not torch.isfinite(image).all():
+        raise ValueError("Preprocessed SwinUNETR input must be finite with shape [4, X, Y, Z].")
+    inference = model_spec["inference"]
+    roi_size = tuple(int(value) for value in inference["roi_size"])
+    if int(inference["sw_batch_size"]) != 1:
+        raise ValueError("Low-memory SwinUNETR inference requires sw_batch_size=1.")
+    if list(model_spec["output_order"]) != ["ET", "TC", "WT"]:
+        raise ValueError("SwinUNETR output order must be exactly [ET, TC, WT].")
+    selected_device = _resolve_inference_device(device)
+    memory = _check_inference_memory(
+        checkpoint_path, image, output_channels=3, roi_size=roi_size
+    )
+    cuda_memory_preflight = (
+        _check_cuda_inference_memory(
+            checkpoint_path, image, roi_size, selected_device
+        )
+        if selected_device.type == "cuda"
+        else None
+    )
+    process_memory_before = _process_memory_usage()
+    inference_started = time.perf_counter()
+    checkpoint, state_dict = _load_model_card_checkpoint(checkpoint_path)
+    model = _build_model_card_model(model_spec)
+    try:
+        load_parameters = inspect.signature(model.load_state_dict).parameters
+        load_options = {"strict": True}
+        if "assign" in load_parameters:
+            load_options["assign"] = True
+        model.load_state_dict(state_dict, **load_options)
+    except RuntimeError as error:
+        raise ValueError(f"SwinUNETR checkpoint compatibility check failed: {error}") from error
+    del state_dict, checkpoint
+    gc.collect()
+
+    if selected_device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(selected_device)
+    from monai.inferers import sliding_window_inference
+
+    previous_thread_count = torch.get_num_threads()
+    inference_thread_count = (
+        min(previous_thread_count, 4)
+        if selected_device.type == "cpu"
+        else previous_thread_count
+    )
+    if inference_thread_count != previous_thread_count:
+        torch.set_num_threads(inference_thread_count)
+    try:
+        model = model.to(selected_device).eval()
+        with torch.inference_mode():
+            logits = sliding_window_inference(
+                inputs=image.unsqueeze(0),
+                roi_size=roi_size,
+                sw_batch_size=int(inference["sw_batch_size"]),
+                predictor=model,
+                overlap=float(inference["overlap"]),
+                sw_device=selected_device,
+                device=torch.device("cpu"),
+            )
+            if logits.ndim != 5 or logits.shape[1] != 3:
+                raise ValueError(
+                    f"Model output must have shape [1, 3, X, Y, Z]; received {tuple(logits.shape)}."
+                )
+            if not torch.isfinite(logits).all():
+                raise ValueError("SwinUNETR produced non-finite logits.")
+            probability_tensor = torch.sigmoid(logits[0])
+            del logits
+            probabilities = probability_tensor.numpy()
+            del probability_tensor
+    except RuntimeError as error:
+        if "out of memory" in str(error).lower():
+            raise MemoryError(
+                f"SwinUNETR {selected_device.type.upper()} inference ran out of memory "
+                f"using ROI {roi_size} and sliding-window batch size 1. Reduce other "
+                "memory use or select a device with more available memory."
+            ) from error
+        raise
+    finally:
+        if inference_thread_count != previous_thread_count:
+            torch.set_num_threads(previous_thread_count)
+        del model
+        gc.collect()
+        if selected_device.type == "cuda":
+            torch.cuda.empty_cache()
+
+    output_order = list(model_spec["output_order"])
+    expected_shape = tuple(int(value) for value in image.shape[1:])
+    if probabilities.shape != (3, *expected_shape):
+        raise ValueError(
+            f"Probability map shape {probabilities.shape} does not match input volume {expected_shape}."
+        )
+    if (
+        not np.isfinite(probabilities).all()
+        or np.any(probabilities < 0)
+        or np.any(probabilities > 1)
+        or not np.any(probabilities > 0)
+    ):
+        raise ValueError("SwinUNETR probability maps are empty, non-finite, or outside [0, 1].")
+    threshold = float(inference["threshold"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+    header = volume["header"].copy()
+    header.set_data_dtype(np.uint8)
+    affine = np.asarray(volume["affine"], dtype=np.float64)
+    import nibabel as nib
+
+    probability_summary: dict[str, dict[str, float]] = {}
+    mask_voxel_count: dict[str, int] = {}
+    for index, name in enumerate(output_order):
+        probability_map = probabilities[index]
+        mask = probability_map >= threshold
+        probability_summary[name] = {
+            "minimum": float(probability_map.min()),
+            "maximum": float(probability_map.max()),
+            "mean": float(probability_map.mean()),
+        }
+        mask_voxel_count[name] = int(mask.sum())
+        output = nib.Nifti1Image(mask.astype(np.uint8), affine, header.copy())
+        nib.save(output, str(output_dir / f"{case.case_id}_{name}.nii.gz"))
+        del mask, output
+    t1ce_index = modalities.index("t1c")
+    whole_tumor_index = output_order.index("WT")
+    occupied_slices = np.flatnonzero(
+        np.any(probabilities[whole_tumor_index] >= threshold, axis=(0, 1))
+    )
+    slice_index = int(occupied_slices.mean()) if occupied_slices.size else expected_shape[2] // 2
+    _save_pretrained_visualization(
+        output_dir,
+        image[t1ce_index, :, :, slice_index].numpy(),
+        probabilities[:, :, :, slice_index],
+        output_order,
+        threshold,
+    )
+    inference_time_seconds = time.perf_counter() - inference_started
+    process_memory_after = _process_memory_usage()
+    available_after = _available_memory_bytes()
+    metadata = {
+        "pipeline": "pretrained_monai_swinunetr",
+        "checkpoint": str(checkpoint_path),
+        "case_id": case.case_id,
+        "checkpoint_key": "state_dict",
+        "modalities": list(modalities),
+        "region_order": output_order,
+        "unavailable_regions": {"RC": "Not documented for this checkpoint; no RC mask was produced."},
+        "output_shape": list(expected_shape),
+        "input_affine": affine.tolist(),
+        "spacing_mm": list(volume["spacing"]),
+        "orientation": None,
+        "orientation_policy": "native uploaded voxel axes; no reorientation or resampling",
+        "preprocessing": model_spec["preprocessing"],
+        "inference": inference,
+        "probability_summary": probability_summary,
+        "mask_voxel_count": mask_voxel_count,
+        "visualization": "segmentation_visualization.png",
+        "memory_preflight": memory,
+        "memory_usage": {
+            "process_before": process_memory_before,
+            "process_after": process_memory_after,
+            "available_ram_after_bytes": available_after,
+            "cuda_preflight": cuda_memory_preflight,
+            "cuda_after": _cuda_memory_usage(selected_device),
+        },
+        "inference_time_seconds": inference_time_seconds,
+        "device": str(selected_device),
+        "torch_version": torch.__version__,
+        "monai_version": __import__("monai").__version__,
+        "clinical_performance": "unvalidated",
+    }
+    (output_dir / "prediction_metadata.json").write_text(
+        json.dumps(metadata, indent=2), encoding="utf-8"
+    )
+    del probabilities, image, volume
+    gc.collect()
+    return output_dir
 
 
 def _ontology_metadata() -> dict[str, Any]:

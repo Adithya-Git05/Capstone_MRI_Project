@@ -11,6 +11,7 @@ import torch
 
 from integrated_pipeline.modules.mri_io import MODALITIES, validate_study, write_uploaded_study
 from integrated_pipeline.modules.model_adapters import classify_slice, segment_slice
+from integrated_pipeline.modules.gradcam import classifier_gradcam
 from integrated_pipeline.modules.report_generator import generate_report
 from integrated_pipeline.modules.rag_adapter import validate_rag_evidence
 from integrated_pipeline.modules.risk_adapter import risk_prerequisite_status
@@ -178,6 +179,14 @@ class ModelAdapterContractTests(unittest.TestCase):
             classification = classify_slice(classifier_path, sample)
             self.assertIn(classification["predicted_class"], CLASS_NAMES)
             self.assertAlmostEqual(sum(classification["probabilities"].values()), 1.0, places=5)
+            self.assertEqual(set(classification["scores"]), set(CLASS_NAMES))
+            self.assertGreaterEqual(classification["inference_time_seconds"], 0.0)
+            heatmap, overlay, target_layer = classifier_gradcam(
+                classifier_path, sample, classification["predicted_class"]
+            )
+            self.assertEqual(heatmap.shape, sample.shape)
+            self.assertEqual(overlay.shape[2], 3)
+            self.assertEqual(target_layer, "BRISCClassifier.features[14]")
 
             segmenter = BRISCUNet(base_channels=4)
             segmentation_path = root / "segmenter.pt"
@@ -194,6 +203,24 @@ class ModelAdapterContractTests(unittest.TestCase):
             self.assertEqual(mask.shape, sample.shape)
             self.assertTrue(set(np.unique(mask)).issubset({0, 1}))
             self.assertEqual(metadata["image_size"], 32)
+            self.assertGreaterEqual(metadata["inference_time_seconds"], 0.0)
+
+            from src.segmentation2d.model_attention import BRISCAttentionUNet
+
+            attention_model = BRISCAttentionUNet(base_channels=4)
+            attention_path = root / "attention_segmenter.pt"
+            torch.save(
+                {
+                    "model_state": attention_model.state_dict(),
+                    "model_config": {"base_channels": 4},
+                    "image_size": 32,
+                    "mask_threshold": 128,
+                },
+                attention_path,
+            )
+            attention_mask, attention_metadata = segment_slice(attention_path, sample)
+            self.assertEqual(attention_mask.shape, sample.shape)
+            self.assertEqual(attention_metadata["architecture"], "BRISCAttentionUNet")
 
 
 if __name__ == "__main__":

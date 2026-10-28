@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import inspect
 
 import torch
 from torch.nn import functional as F
@@ -108,13 +109,17 @@ def build_monai_model(
     if model_name == "swinunetr":
         from monai.networks.nets import SwinUNETR
 
-        return SwinUNETR(
-            img_size=tuple(int(value) for value in patch_size),
-            in_channels=in_channels,
-            out_channels=out_channels,
-            feature_size=feature_size,
-            use_checkpoint=True,
-        )
+        parameters = inspect.signature(SwinUNETR).parameters
+        arguments = {
+            "in_channels": in_channels,
+            "out_channels": out_channels,
+            "feature_size": feature_size,
+        }
+        if "img_size" in parameters:
+            arguments["img_size"] = tuple(int(value) for value in patch_size)
+        if "use_checkpoint" in parameters:
+            arguments["use_checkpoint"] = True
+        return SwinUNETR(**arguments)
     if model_name == "resnet3d":
         return _DenseSegmentation3D(in_channels, out_channels, feature_size, _ResidualBlock3D)
     if model_name == "efficientnet3d":

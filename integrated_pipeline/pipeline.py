@@ -31,6 +31,7 @@ def run_pipeline(
     risk_config: Path | None = None,
     synthseg_upload: object | None = None,
     progress: Callable[[str], None] | None = None,
+    model_spec: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run available local model stages; keep unsupported risk inputs explicit."""
     def update_progress(message: str) -> None:
@@ -49,16 +50,24 @@ def run_pipeline(
         output_dir = root / "segmentation3d"
         checkpoint_3d = Path(checkpoint_3d).expanduser().resolve()
 
-        from src.segmentation3d.monai_engine import predict_case
+        from src.segmentation3d.monai_engine import (
+            predict_case,
+            predict_model_card_case,
+        )
         from src.data.brats import BraTSCase, load_input_volume
 
         update_progress("Running the selected 3D segmentation checkpoint.")
-        predict_case(checkpoint_3d, case_dir, output_dir)
+        if model_spec is None:
+            predict_case(checkpoint_3d, case_dir, output_dir)
+        else:
+            predict_model_card_case(
+                checkpoint_3d, case_dir, output_dir, model_spec
+            )
         prediction_metadata = json.loads(
             (output_dir / "prediction_metadata.json").read_text(encoding="utf-8")
         )
         orientation = prediction_metadata.get("orientation")
-        if orientation != "RAS":
+        if orientation not in (None, "RAS"):
             raise ValueError(
                 f"Integrated slice extraction currently requires RAS model orientation; "
                 f"checkpoint uses {orientation!r}."
@@ -74,10 +83,31 @@ def run_pipeline(
             case, modalities=model_modalities, orientation=orientation
         )
         predicted_masks: dict[str, np.ndarray] = {}
-        for region in ("WT", "TC", "ET", "RC"):
+        region_order = prediction_metadata.get(
+            "region_order", ["WT", "TC", "ET", "RC"]
+        )
+        if (
+            not isinstance(region_order, list)
+            or not region_order
+            or len(region_order) != len(set(region_order))
+            or not set(region_order).issubset({"ET", "TC", "WT", "RC"})
+        ):
+            raise ValueError(f"3D prediction has an invalid region order: {region_order!r}.")
+        for region in region_order:
             mask_path = output_dir / f"{safe_id}_{region}.nii.gz"
-            if mask_path.is_file():
-                predicted_masks[region] = np.asarray(nib.load(str(mask_path)).get_fdata() > 0)
+            if not mask_path.is_file():
+                raise RuntimeError(f"3D predictor did not save its declared {region} mask.")
+            mask_image = nib.load(str(mask_path))
+            if (
+                tuple(mask_image.shape) != tuple(volume["image"].shape[1:])
+                or not np.allclose(mask_image.affine, volume["affine"], atol=1e-4)
+            ):
+                raise RuntimeError(
+                    f"Saved {region} mask does not match the source volume geometry."
+                )
+            predicted_masks[region] = np.asarray(
+                mask_image.get_fdata(dtype=np.float32, caching="unchanged") > 0
+            )
         if "WT" not in predicted_masks:
             raise RuntimeError("3D predictor completed without a WT mask.")
         if tuple(volume["image"].shape[1:]) != predicted_masks["WT"].shape:
@@ -110,6 +140,9 @@ def run_pipeline(
                 "orientation",
                 "patch_size",
                 "device",
+                "output_order",
+                "inference",
+                "preprocessing",
             )
             if key in resolved_config
         }
@@ -167,8 +200,30 @@ def run_pipeline(
         result: dict[str, Any] = {
             "case_id": safe_id,
             "stages": {
-                "3D segmentation": {"status": "completed"},
+                "3D segmentation": {
+                    "status": "completed",
+                    "reasons": [],
+                    "clinical_performance": "unvalidated",
+                },
                 "surgical risk mapping": risk_status,
+                "Surgical corridors": {
+                    "status": (
+                        "completed"
+                        if risk_result is not None
+                        else "failed"
+                        if risk_status["status"] == "failed"
+                        else "blocked"
+                    ),
+                    "reasons": (
+                        []
+                        if risk_result is not None
+                        else list(risk_status.get("reasons", []))
+                    ),
+                    "note": (
+                        "V8 corridor candidates are experimental outputs, not surgical "
+                        "recommendations."
+                    ),
+                },
                 "2D slice extraction": {"status": "completed"},
                 "2D segmentation": {
                     "status": "not configured" if checkpoint_2d_segmentation is None else "pending"
@@ -185,6 +240,7 @@ def run_pipeline(
                 },
             },
             "model_3d": prediction_metadata["pipeline"],
+            "clinical_performance": "unvalidated",
             "model_configuration": report_config,
             "inference_device": prediction_metadata.get("device", "not recorded"),
             "software_versions": {
@@ -194,6 +250,19 @@ def run_pipeline(
             "seed": prediction_metadata.get("seed", "not recorded"),
             "prediction_threshold": prediction_metadata.get("prediction_threshold", "not recorded"),
             "region_definitions": prediction_metadata.get("region_definitions", {}),
+            "region_order": region_order,
+            "unavailable_regions": prediction_metadata.get("unavailable_regions", {}),
+            "probability_summary": prediction_metadata.get("probability_summary", {}),
+            "segmentation3d_metadata": prediction_metadata,
+            "mask_nifti_files": {
+                name: (output_dir / f"{safe_id}_{name}.nii.gz").read_bytes()
+                for name in region_order
+            },
+            "segmentation_visualization": (
+                output_dir / prediction_metadata["visualization"]
+            ).read_bytes()
+            if prediction_metadata.get("visualization")
+            else None,
             "input_shape": list(study.shape),
             "output_shape": list(predicted_masks["WT"].shape),
             "input_spacing_mm": list(study.spacing),

@@ -1,0 +1,141 @@
+{
+  "models": {
+    "segmentation_2d": {
+      "task": "segmentation",
+      "dimensionality": "2D",
+      "status": "selected_checkpoint",
+      "checkpoint": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/best.pt",
+      "architecture": "BRISCAttentionUNet",
+      "input_shape": [1, 1, 256, 256],
+      "modalities": ["single grayscale MRI slice"],
+      "preprocessing": "PNG/JPEG: grayscale 8-bit input scaled to [0,1], then [-1,1], bilinear stretch resize to 256x256. NIfTI: per-slice nonzero 1st-99th percentile window as an explicit domain adaptation, then checkpoint normalization.",
+      "classes": {
+        "0": "background",
+        "1": "tumor foreground"
+      },
+      "checkpoint_integrity": {
+        "size_bytes": 2000897,
+        "sha256": "282f1499be25cef06bc20d828317ab2cef17771e26891652466e0b207f1dccab"
+      },
+      "selection_evidence": {
+        "test_cases": 860,
+        "global_foreground_dice": 0.875253,
+        "global_foreground_iou": 0.778178,
+        "mean_per_image_dice": 0.856058,
+        "evidence_source": "Capstone_Technical_Dossier/06_segmentation_results.md",
+        "checkpoint_manifest": "7_gradcam/handoff/checkpoint_manifest.csv",
+        "limitations": "BRISC official-folder test; patient independence is not established. Binary foreground only."
+      }
+    },
+    "classification_2d": {
+      "task": "classification",
+      "dimensionality": "2D",
+      "status": "user_supplied_checkpoint",
+      "checkpoint": "4_2d_classification/outputs/classification/20261018_214516_seed2026/best.pt",
+      "architecture": "BRISCClassifier",
+      "input_shape": [1, 1, 160, 160],
+      "modalities": ["single grayscale MRI slice"],
+      "preprocessing": "PNG/JPEG: grayscale 8-bit input scaled to [0,1], then [-1,1], pad resize to 160x160. NIfTI: per-slice nonzero 1st-99th percentile window as an explicit domain adaptation, then checkpoint normalization.",
+      "classes": {
+        "0": "glioma",
+        "1": "meningioma",
+        "2": "no_tumor",
+        "3": "pituitary"
+      },
+      "checkpoint_integrity": {
+        "size_bytes": 1562429,
+        "sha256": "71E843308A305E2C90FCB87A654436CC4E1C9697023D69787FBAFE18B7732356"
+      },
+      "selection_evidence": {
+        "evaluation_status": "validation_only",
+        "evidence_source": "7_gradcam/handoff/checkpoint_manifest.csv",
+        "checkpoint_manifest": "7_gradcam/handoff/checkpoint_manifest.csv",
+        "limitations": "User-supplied earlier 30-epoch run; validation metrics only, older sample-level split protocol, and no official test evaluation is established for this checkpoint. BRISC folder-class prediction, not pathology-confirmed tumor subtype. Probabilities are uncalibrated model softmax outputs."
+      }
+    },
+    "segmentation_3d": {
+      "task": "segmentation",
+      "dimensionality": "3D",
+      "status": "model_card_documented",
+      "checkpoint": "2_3d_segmentation/outputs/segmentation3d/SwinUNETR/best.pth",
+      "architecture": "SwinUNETR",
+      "input_shape": [1, 4],
+      "feature_size": 48,
+      "input_modalities": ["t1n", "t1c", "t2w", "t2f"],
+      "modalities": ["t1n", "t1c", "t2w", "t2f"],
+      "preprocessing": {
+        "requirements": [
+          "Four skull-stripped, co-registered sequences from the same study",
+          "Channel-wise normalization over nonzero voxels",
+          "No orientation conversion or resampling is applied by this inference path"
+        ],
+        "normalization": "NormalizeIntensity(nonzero=true, channel_wise=true)",
+        "orientation": "preserve uploaded voxel axes and affine",
+        "resampling": "none"
+      },
+      "output_channels": 3,
+      "output_order": ["ET", "TC", "WT"],
+      "classes": {
+        "0": "ET - enhancing tumor",
+        "1": "TC - tumor core",
+        "2": "WT - whole tumor"
+      },
+      "unavailable_outputs": {
+        "RC": "Not documented for this checkpoint; no RC mask is produced."
+      },
+      "inference": {
+        "activation": "sigmoid",
+        "threshold": 0.5,
+        "method": "sliding_window_inference",
+        "roi_size": [64, 64, 64],
+        "overlap": 0.7,
+        "sw_batch_size": 1,
+        "checkpoint_key": "state_dict",
+        "roi_adjustment": {
+          "model_card_roi_size": [128, 128, 128],
+          "runtime_roi_size": [64, 64, 64],
+          "reason": "Reduce CPU inference working memory; 64 is divisible by the SwinUNETR 32-voxel encoder downsampling factor.",
+          "clinical_or_accuracy_validation": "not performed"
+        }
+      },
+      "checkpoint_integrity": {
+        "size_bytes": 754036090,
+        "sha256": "7D9A1578D354AE710D14D786F443F042EDE85C2D6D4E534BDEE0EEDA9F1F1D64"
+      },
+      "provenance": {
+        "model_card_url": "https://huggingface.co/janiharman/swinunetr-pretrained-brats2025",
+        "model_card_details": "User-supplied model-card specification; remote page retrieval returned HTTP 401 during this task, so these training/inference claims were not independently fetched.",
+        "documented_by_model_card": [
+          "MONAI SwinUNETR",
+          "4 input channels in [T1, T1ce, T2, FLAIR] order",
+          "3 output channels in [ET, TC, WT] order",
+          "feature_size=48",
+          "Skull-stripped, co-registered volumes with channel-wise nonzero normalization",
+          "Sigmoid, threshold=0.5, 128x128x128 sliding window, overlap=0.7, sw_batch_size=1"
+        ]
+      },
+      "compatibility_test": {
+        "status": "strict_state_dict_load_passed",
+        "checkpoint_inspection": {
+          "checkpoint_key": "state_dict",
+          "state_dict_tensor_count": 159,
+          "input_projection_shape": [48, 4, 2, 2, 2],
+          "output_head_shape": [3, 48, 1, 1, 1],
+          "state_dict_prefix": "net."
+        },
+        "strict_load": {
+          "prefix_removed": "net.",
+          "result": "All keys matched successfully",
+          "torch_version": "2.14.1+cpu",
+          "monai_version": "1.6.1"
+        },
+        "limitations": [
+          "Strict tensor compatibility does not independently confirm training provenance or label semantics.",
+          "No complete real four-modality sample is present in the workspace; inference and clinical performance are unvalidated."
+        ]
+      },
+      "selection_evidence": null,
+      "clinical_performance": "unvalidated"
+    }
+  }
+}

@@ -1,143 +1,142 @@
-# Integrated MRI Research Pipeline
+# Brain MRI Analysis Application
 
-This is a separate orchestration and Streamlit interface over the existing
-project. It does not replace either original implementation. It is a research
-prototype, not a diagnostic or treatment-planning system.
+The Streamlit app is a research prototype with one four-modality study intake.
+Upload co-registered BraTS-style `t2f`, `t1n`, `t1c`, and `t2w` NIfTI volumes
+together; the selected sequence supplies the axial slice for the current 2D
+models, while the 3D model requires all four channels. Outputs are
+experimental, and use of BRISC models on other MRI domains is not validated.
 
-## Component integration
-
-| Pipeline component | Reused source | Contract and current limitation |
-|---|---|---|
-| 3D segmentation | `2_3d_segmentation/src/segmentation3d/monai_engine.py`, `2_3d_segmentation/src/segmentation3d/models.py`, `1_data_and_preprocessing/src/data/brats.py` | Existing `predict_case` loader; four registered BraTS modalities (`t2f`, `t1n`, `t1c`, `t2w`), RAS orientation, existing nonzero-voxel z-score normalization, verified checkpoint ontology required. |
-| 3D region interpretation | `1_data_and_preprocessing/src/data/brats.py`, `2_3d_segmentation/configs/segmentation3d.yaml` | Independent, potentially overlapping WT/TC/ET/RC masks. They are not SynthSeg labels. |
-| Slice extraction | New `modules/slice_extraction.py` | The `t1c` volume in the model's RAS-oriented input; tumor-max axial slice by default. The extracted 2D row/column indices map to the first/second array axes, and the slice index maps to the third. |
-| 2D segmentation | `3_2d_segmentation/src/segmentation2d/model.py`, `3_2d_segmentation/src/segmentation2d/engine.py`, `1_data_and_preprocessing/src/data/brisc.py` | Reuses `BRISCUNet` checkpoint contract and training preprocessing (`256x256`, grayscale, `[0,1]`). MRI/BRISC domain compatibility is unvalidated. The existing CLI predictor uses a different normalization; the adapter follows training preprocessing instead. |
-| 2D classification | `4_2d_classification/src/classification/model.py`, `4_2d_classification/src/classification/engine.py`, `1_data_and_preprocessing/src/data/brisc.py` | Reuses `BRISCClassifier` and four BRISC class names. MRI slice conversion to grayscale robust intensity range is a domain adaptation, not validated against the BRISC training distribution. Outputs must not be interpreted as a confirmed diagnosis. |
-| Surgical risk mapping | `5_surgical_risk_mapping/configs/config_v7.json`, `5_surgical_risk_mapping/pipeline/run_patient.py`, `5_surgical_risk_mapping/pipeline/run_v8_pipeline.py`, `5_surgical_risk_mapping/pipeline/v7_risk_components.py` | Runs the existing V8 engine when a SynthSeg label volume is supplied and strict V8 spatial QC passes. Uses the uploaded t1c MRI and existing WT prediction mask. DTI/tract-dependent metrics remain unavailable unless those inputs are later integrated. BraTS region masks are never substituted for SynthSeg. |
-| RAG | `6_rag_treatment_planning/api/main.py`, `6_rag_treatment_planning/src/rag_pipeline.py`, `6_rag_treatment_planning/src/schemas.py` | The API accepts a per-query validated structured context from this run; context is not persisted. With explicit authorization, structured outputs and the question are sent; raw MRI is not. RAG source corpus/service availability remains external and is not bundled reliably. |
-| PDF report | New `modules/report_generator.py` | Generated from the run's stage statuses, actual model outputs, mask overlays and optional RAG response/citations. Missing/blocked stages are stated; no treatment recommendation is generated. |
-
-## Data flow
-
-```mermaid
-flowchart TD
-    A[Upload four registered BraTS NIfTIs] --> B[Validate dimensions and affine]
-    B --> C[Existing RAS orientation and intensity normalization]
-    C --> D[Existing SegResNet or SwinUNETR checkpoint inference]
-    D --> E[WT / TC / ET / RC binary masks]
-    E --> F[Select tumor-max axial RAS slice]
-    F --> G[Existing BRISC 2D segmentation adapter]
-    F --> H[Existing BRISC classification adapter]
-    E --> I[Upload SynthSeg labels aligned to t1c]
-    I --> V[Existing V8 mapper and strict spatial QC]
-    J[Explicitly authorized structured analysis context] --> K[Existing evidence retrieval and citations]
-    G --> L[Structured research PDF]
-    H --> L
-    I --> L
-    V --> L
-    K --> L
-```
-
-## Setup and launch
+## Launch
 
 From the repository root in PowerShell:
 
 ```powershell
-python -m pip install -e ".[integrated]"
-python -m streamlit run integrated_pipeline\app.py
+.\venv\Scripts\python.exe -m pip install -e ".[brats,integrated]"
+.\venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-The app requires four registered 3D `.nii` or `.nii.gz` volumes with matching
-shape and affine, finite non-empty voxel data, in the displayed modality order. It preserves spatial
-metadata and relies on the existing data loader to orient to RAS. The app does
-not retrain models. Raw NIfTI `.nii` uploads are temporarily gzip-wrapped to
-match the existing loader's expected case filenames. Supply a compatible 3D checkpoint with the existing
-`brats_post_treatment_composites_v1` checkpoint ontology. Existing sample
-checkpoints appear in the default fields when present; their existence does
-not establish clinical validity or successful inference on an uploaded case.
+The root `app.py` delegates to `integrated_pipeline/app.py`. Uploads are
+processed locally by the app process, held temporarily or in Streamlit session
+state, and are not written as persistent case files. Do not expose this
+prototype publicly or upload identifiable data without appropriate
+authorization.
 
-The optional 2D checkpoints are the project’s BRISC research checkpoints.
-Their use on MRI slices is experimental and out of distribution unless
-validated separately. The adapters robustly scale each MRI slice from its
-nonzero 1st-99th intensity percentiles; this differs from the original BRISC
-image domain. The report labels their outputs as model predictions. The
-selected 2D model input is the `t1c` modality and its displayed axis convention
-is the RAS-oriented array convention, not a validated radiology workstation
-viewing convention.
+Use the same Python environment for installation and launch. The registered
+SwinUNETR checkpoint was strictly tested with PyTorch 2.14.1+cpu and MONAI
+1.6.1; a different PyTorch release is not treated as verified by the UI. The
+3D forward path additionally requires `einops`, included in the `brats` and
+`integrated` extras.
 
-For the existing RAG agent, start its API separately using its
-`6_rag_treatment_planning/README.md` instructions. The integrated app
-passes the current run's structured output as a per-query context; the API does
-not persist that context. It sends no raw MRI voxel data. The UI requires
-explicit authorization before sending the study/context ID, structured
-predictions, and question to the configured API. Verify the knowledge base and
-the API's model-service configuration before use.
-Model download/service configuration remains in the original RAG project;
-ordinary integrated-app startup does not download a generation model.
+The project’s `.streamlit/config.toml` sets the readable light-theme default.
+Use the sidebar **Dark mode** toggle to switch the app palette. The UI groups
+the workflow into Overview, MRI & 2D Analysis,
+Explainability, Spatial & Surgical, Chat / Ask MRI Assistant, and Final Report.
+Model paths and configuration fields are inside a collapsed advanced
+configuration panel.
 
-## Optional V8 integration and prerequisites
+## Selected checkpoints and evidence
 
-The integrated pipeline runs V8 only when a separate SynthSeg label volume is
-provided. The label volume must be registered to the uploaded t1c MRI; the
-adapter reorients MRI and labels to RAS and checks dimensions, affine, integer
-label values and known V8 label IDs. The V8 mapper then performs its original
-strict spatial QC and halts on critical mismatches. V8 outputs are isolated
-under the temporary run directory and removed after structured maps, component
-weights, QC, structure scores and corridor cost records are retained in
-session state. No SynthSeg labels are inferred from the BraTS segmentation.
-The default integration does not provide DTI FA or tract masks, so those
-component scores are unavailable and are surfaced as such. These geometric
-and anatomical composite scores are not probabilities of injury and are not
-clinically validated.
+`model_registry.json` contains portable, project-relative paths and evidence
+for the selected candidates:
 
-## Data handling, reproducibility, known limits
+| Task | Checkpoint | Selection evidence |
+|---|---|---|
+| 2D segmentation | `3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/best.pt` (`BRISCAttentionUNet`) | Official-folder test: 860 cases, global foreground Dice 0.875253, IoU 0.778178, mean per-image Dice 0.856058. |
+| 2D classification | `4_2d_classification/outputs/classification/20261018_214516_seed2026/best.pt` (`BRISCClassifier`) | User-supplied earlier 30-epoch checkpoint; validation-only evidence and older sample-level split protocol. No test metrics are attributed to this checkpoint. |
 
-- Inputs are copied to a temporary directory for inference and removed when the
-  run ends. Current result arrays remain in Streamlit session state until the
-  session ends; they are not persisted to disk by this app.
-- Run this app only in an environment authorized for the uploaded data. On a
-  remote deployment, uploads are transmitted to that host; this prototype has
-  no authentication, access-control or deployment-hardening layer. Do not
-  expose it publicly or submit identifiable data without institutional
-  authorization.
-- Before public redistribution, have the project owner confirm licensing for
-  source contributions, model checkpoints, datasets and literature documents.
-  This integration does not grant rights to those materials.
-- CPU inference is supported by the existing checkpoint loader but 3D inference
-  can be slow and memory intensive. No model weights are downloaded by the app.
-- The project’s 3D example checkpoint metadata records one completed training
-  epoch. A checkpoint being present is not a performance or validation claim.
-- 3D outputs carry the existing provisional BraTS region ontology; the source
-  metadata marks label-release provenance unverified.
-- No ground truth is expected for uploads; all displayed masks are predictions.
-- The risk stage runs only with user-supplied SynthSeg labels and strict QC
-  passing; it reports blocked/failed states otherwise. RAG requires an
-  available service and explicit authorization. These stages are not claimed
-  as end-to-end tested.
-- The RAG project defaults to local Ollama `llama3.2:3b`, separately from its
-  embedding and reranking models. This integration does not select or replace
-  those models; no larger model is silently downloaded.
-- The generation model is configured independently through the legacy RAG
-  service's `OLLAMA_MODEL`; retrieval embeddings and reranking use their own
-  `EMBEDDING_MODEL` and `RERANKER_MODEL` settings. Candidate deployment choices:
+The 2D classifier path above follows the user-supplied local checkpoint; it is
+not the newer test-evaluated checkpoint described in the technical dossier.
+Do not attribute the newer checkpoint's test metrics to this earlier file.
+Dataset provenance and patient-level independence are not established.
+Classifier outputs are the BRISC folder classes `glioma`, `meningioma`,
+`no_tumor`, and `pituitary`; they are not pathology-confirmed subtypes.
 
-  | Model | License | Practicality | Selection caveat |
-  |---|---|---|---|
-  | Qwen2.5 7B Instruct (`qwen2.5:7b`) | Apache-2.0 | Recommended demo candidate when several GB of memory plus runtime overhead are available; CPU inference may be slow. Ollama model pull is explicit. | Stronger instruction-following capacity is a reasonable candidate for grounded synthesis, but was not benchmarked in this project and is not clinically validated. |
-  | Llama 3.2 3B (`llama3.2:3b`) | Llama 3.2 Community License; review its terms | Existing lower-memory local Ollama default and fallback. | Less capacity than the 7B candidate is expected; citations/evidence still require checking. |
+The selected checkpoint files are local artifacts and are not version-controlled.
+When present at the registry paths, the app checks the recorded size and SHA-256
+before inference; another checkout must supply the matching files or configure
+local paths in the sidebar. No predictions are produced without compatible
+weights. See the checkpoint manifest and
+[`06_segmentation_results.md`](../Capstone_Technical_Dossier/06_segmentation_results.md)
+and
+[`07_classification_results.md`](../Capstone_Technical_Dossier/07_classification_results.md)
+for provenance and limitations.
 
-  To try the Qwen model, set `OLLAMA_MODEL=qwen2.5:7b` in the RAG service
-  environment and explicitly obtain its Ollama model before the demo. Ordinary
-  app startup never downloads generation weights. The choice is configurable;
-  no measured quality comparison or clinical evaluation is claimed.
+## Workflow and limitations
 
-## Tests
+- MRI input validation checks all four supported NIfTI sequences for
+  dimensions, non-empty and finite data, and matching spatial metadata. The 2D
+  models receive one grayscale slice from the selected sequence;
+  model-specific resizing and normalization follow the checkpoint pipeline.
+  NIfTI uses an explicit per-slice 1st-99th-percentile intensity window before
+  the same model normalization; that conversion is a domain adaptation, not
+  part of BRISC training.
+- Segmentation presents a binary foreground mask, overlay, pixel count, and
+  physical in-plane area only when NIfTI geometry is available. It does not
+  estimate 3D tumor volume.
+- Classification displays raw logits and uncalibrated softmax output. These
+  values are not calibrated clinical probabilities.
+- Grad-CAM is available for a compatible classifier checkpoint. A heatmap is
+  generated only after its model hooks succeed.
+- Spatial-risk and corridor analysis require compatible 3D outputs and
+  anatomical inputs; they remain blocked for this 2D-only workflow.
+- The registered SwinUNETR checkpoint is specified by its supplied model-card
+  contract as four inputs in `[T1, T1ce, T2, FLAIR]` order and three outputs in
+  `[ET, TC, WT]` order. The local checkpoint's tensor shapes and strict state
+  dictionary load were verified against PyTorch 2.14.1+cpu and MONAI 1.6.1;
+  that proves architectural compatibility, not training provenance or clinical
+  performance. Model-card details were supplied by the user because the remote
+  model card could not be independently retrieved. The app verifies the
+  checkpoint manifest and runtime versions before enabling inference.
+- 3D inference requires all four finite, registered NIfTI volumes and the
+  user's confirmation that they are from the same skull-stripped study. It
+  preserves native voxel axes/affine, performs channel-wise nonzero
+  normalization, and uses a 64-cube sliding window with batch size 1 for the
+  CPU-constrained app. The supplied model-card ROI is 128-cube; using a smaller
+  ROI is an explicit runtime memory adjustment, not a change to the checkpoint
+  or whole-volume preprocessing. It produces ET/TC/WT masks only; RC is
+  unavailable and is never synthesized. CPU/RAM preflight can block inference.
+  A successful 64-cube checkpoint forward pass verifies runtime compatibility,
+  not a patient case. A complete real four-modality smoke test and clinical
+  performance remain unvalidated until a suitable study sample is run.
+- SwinUNETR's MONAI forward path imports `einops`; it is included in the
+  `brats` and `integrated` optional dependencies so installing
+  `.[brats,integrated]` supplies the runtime dependency.
+- The V8 spatial risk mapper may run after 3D segmentation when an aligned
+  SynthSeg volume and its configured template are available. Its scores and
+  corridor candidates are experimental, not calibrated injury probabilities
+  or surgical recommendations. Standalone corridor planning is not
+  implemented.
+- RAG is optional. Only structured analysis outputs and the question are sent
+  when the user explicitly enables structured context. General chat questions
+  contain no patient context. Raw MRI pixels and files are never sent. The chat
+  checks the local API, literature chunk index, Ollama service, and configured
+  Ollama model; missing prerequisites are shown with setup instructions.
+  Retrieved passages/citations are displayed separately from generated answer
+  text. The local RAG setup guide is
+  [`6_rag_treatment_planning/README.md`](../6_rag_treatment_planning/README.md).
+- Markdown and PDF reports are generated from structured stage outputs and
+  identify unavailable stages. When 3D inference has run, the PDF includes the
+  model-generated ET/TC/WT overlay visualization, native-space geometry and
+  mask voxel counts. Unrun or blocked stages are reported as such.
 
-From repository root:
+Run focused application tests with:
 
 ```powershell
-python -m unittest integrated_pipeline.tests.test_pipeline -v
+python -m unittest integrated_pipeline.tests.test_application integrated_pipeline.tests.test_pipeline
 ```
 
-The tests use synthetic NIfTI volumes and do not run checkpoint inference,
-external RAG services, or clinical validation.
+The real 3D inference smoke test is opt-in because it requires a complete
+four-modality study. Set `MRI_3D_SMOKE_CASE_DIR` to a folder containing
+`<case-id>-t1n.nii.gz`, `-t1c.nii.gz`, `-t2w.nii.gz`, and `-t2f.nii.gz`;
+optionally set `MRI_3D_SMOKE_CASE_ID` if the folder name differs from the file
+prefix. Then run:
+
+```powershell
+python -m unittest 2_3d_segmentation.tests.test_segmentation3d_ontology.ModelCardInferenceSmokeTests
+```
+
+The test performs real checkpoint loading and full sliding-window inference,
+then verifies output channels, finite probabilities, binary ET/TC/WT masks,
+native geometry, and the saved visualization. It is skipped when no sample
+directory is configured; a skipped test is not a successful inference
+validation.

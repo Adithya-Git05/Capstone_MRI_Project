@@ -1,24 +1,31 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 
+import nibabel as nib
 import numpy as np
 import torch
 
+from integrated_pipeline.modules.model_registry import load_model_registry
 from src.data.brats import REGION_LABELS, REGION_ORDER, build_region_masks
+from src.data.brats import BraTSCase, load_input_volume
 from src.segmentation3d.metrics import region_metrics
 from src.segmentation3d.monai_engine import (
     ONTOLOGY_ID,
     _ontology_metadata,
     _regions,
     _require_new_or_empty_output_dir,
+    _resolve_inference_device,
     _save_evaluation,
     _save_prediction_nifti,
     _summarize,
     _validate_checkpoint_ontology,
+    predict_model_card_case,
+    verify_model_card_checkpoint,
 )
 from src.segmentation3d.nnunet_adapter import (
     DATASET_NAME,
@@ -30,6 +37,53 @@ from src.segmentation3d.nnunet_adapter import (
 
 
 class Segmentation3DOntologyTests(unittest.TestCase):
+    def test_inference_device_auto_uses_cuda_when_available_else_cpu(self) -> None:
+        expected = "cuda" if torch.cuda.is_available() else "cpu"
+        self.assertEqual(str(_resolve_inference_device("auto")), expected)
+        self.assertEqual(str(_resolve_inference_device("cpu")), "cpu")
+
+    def test_inference_device_rejects_unavailable_cuda_and_other_backends(self) -> None:
+        if not torch.cuda.is_available():
+            with self.assertRaisesRegex(RuntimeError, "CUDA is unavailable"):
+                _resolve_inference_device("cuda")
+        with self.assertRaisesRegex(ValueError, "only CPU or CUDA"):
+            _resolve_inference_device("mps")
+
+    def test_model_card_input_order_normalization_and_native_affine(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            case_id = "synthetic-case"
+            case_dir = Path(temporary)
+            affine = np.diag([-1.5, 2.0, 3.0, 1.0])
+            affine[0, 3] = 20.0
+            base = np.arange(1, 61, dtype=np.float32).reshape(3, 4, 5)
+            raw_by_modality = {
+                modality: np.roll(base, shift=index, axis=0)
+                for index, modality in enumerate(("t1n", "t1c", "t2w", "t2f"))
+            }
+            for modality, data in raw_by_modality.items():
+                nib.save(
+                    nib.Nifti1Image(data, affine),
+                    case_dir / f"{case_id}-{modality}.nii.gz",
+                )
+            case = BraTSCase(
+                case_id=case_id,
+                patient_group=case_id,
+                directory=case_dir,
+            )
+
+            volume = load_input_volume(
+                case,
+                modalities=("t1n", "t1c", "t2w", "t2f"),
+                orientation=None,
+            )
+
+        self.assertEqual(tuple(volume["image"].shape), (4, 3, 4, 5))
+        np.testing.assert_allclose(volume["affine"], affine)
+        for channel, modality in enumerate(("t1n", "t1c", "t2w", "t2f")):
+            data = raw_by_modality[modality]
+            expected = (data - data.mean()) / data.std()
+            np.testing.assert_allclose(volume["image"][channel].numpy(), expected)
+
     def test_approved_raw_label_mapping_and_independent_overlaps(self) -> None:
         self.assertEqual(REGION_ORDER, ("WT", "TC", "ET", "RC"))
         self.assertEqual(
@@ -200,6 +254,64 @@ class Segmentation3DOntologyTests(unittest.TestCase):
                     "case-001_WT.nii.gz",
                 ],
             )
+
+
+@unittest.skipUnless(
+    os.environ.get("MRI_3D_SMOKE_CASE_DIR"),
+    "Set MRI_3D_SMOKE_CASE_DIR to a complete four-modality NIfTI study.",
+)
+class ModelCardInferenceSmokeTests(unittest.TestCase):
+    def test_real_checkpoint_inference_preserves_masks_and_visualization(self) -> None:
+        case_dir = Path(os.environ["MRI_3D_SMOKE_CASE_DIR"]).expanduser().resolve()
+        case_id = os.environ.get("MRI_3D_SMOKE_CASE_ID", case_dir.name)
+        model_spec = load_model_registry()["segmentation_3d"]
+        checkpoint = Path(model_spec["resolved_checkpoint"])
+        modalities = tuple(model_spec["input_modalities"])
+        case = BraTSCase(
+            case_id=case_id,
+            patient_group=case_id.rsplit("-", 1)[0],
+            directory=case_dir,
+        )
+
+        for modality in modalities:
+            self.assertTrue(
+                (case_dir / f"{case_id}-{modality}.nii.gz").is_file(),
+                f"Missing required {modality} NIfTI input.",
+            )
+        compatibility = verify_model_card_checkpoint(checkpoint, model_spec)
+        self.assertEqual(compatibility["status"], "compatible")
+        source = load_input_volume(case, modalities=modalities, orientation=None)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output_dir = Path(temporary) / "prediction"
+            predict_model_card_case(checkpoint, case_dir, output_dir, model_spec)
+            metadata = json.loads(
+                (output_dir / "prediction_metadata.json").read_text(encoding="utf-8")
+            )
+
+            self.assertEqual(metadata["modalities"], ["t1n", "t1c", "t2w", "t2f"])
+            self.assertEqual(metadata["region_order"], ["ET", "TC", "WT"])
+            self.assertIn("RC", metadata["unavailable_regions"])
+            visualization = output_dir / metadata["visualization"]
+            self.assertTrue(visualization.is_file())
+            self.assertTrue(visualization.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
+
+            for region in ("ET", "TC", "WT"):
+                image = nib.load(str(output_dir / f"{case_id}_{region}.nii.gz"))
+                self.assertEqual(tuple(image.shape), tuple(source["image"].shape[1:]))
+                np.testing.assert_allclose(image.affine, source["affine"], atol=1e-4)
+                mask = image.get_fdata(dtype=np.float32)
+                self.assertTrue(np.isfinite(mask).all())
+                self.assertTrue(np.isin(mask, (0, 1)).all())
+                summary = metadata["probability_summary"][region]
+                self.assertTrue(
+                    all(
+                        np.isfinite(summary[key])
+                        for key in ("minimum", "maximum", "mean")
+                    )
+                )
+                self.assertGreaterEqual(summary["minimum"], 0.0)
+                self.assertLessEqual(summary["maximum"], 1.0)
 
 
 if __name__ == "__main__":
