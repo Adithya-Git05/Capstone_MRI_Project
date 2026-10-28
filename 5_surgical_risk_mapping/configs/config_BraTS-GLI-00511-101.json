@@ -1,0 +1,156 @@
+{
+  "prototype_version": "V8_PATIENT_SPECIFIC",
+  "patient_id": "BraTS-GLI-00511-101",
+  "paths": {
+    "mri_image": "../1_data_and_preprocessing/data/BraTS/demo_cases/BraTS-GLI-00511-101/BraTS-GLI-00511-101-t1c.nii.gz",
+    "tumor_mask": "../1_data_and_preprocessing/data/BraTS/demo_cases/BraTS-GLI-00511-101/BraTS-GLI-00511-101-seg.nii.gz",
+    "synthseg_labels": "synthseg/output/BraTS-GLI-00511-101-synthseg.nii.gz",
+    "output_dir_v6": "outputs/BraTS-GLI-00511-101/V6_baseline",
+    "output_dir_v7": "outputs/BraTS-GLI-00511-101/V7_enhanced",
+    "output_dir_comp": "outputs/BraTS-GLI-00511-101/comparison",
+    "output_dir_qc": "outputs/BraTS-GLI-00511-101/qc",
+    "output_dir_corridors": "outputs/BraTS-GLI-00511-101/V8_CORRIDORS",
+    "output_dir_ablation": "outputs/BraTS-GLI-00511-101/ablation"
+  },
+  "weights": {
+    "wG": 0.35,
+    "wS": 0.15,
+    "wT": 0.2,
+    "wC": 0.2,
+    "wU": 0.1,
+    "wV": 0.0
+  },
+  "spatial_parameters": {
+    "sigma_G_mm": 5.0,
+    "sigma_T_mm": 10.0,
+    "tract_buffer_mm": 2.0,
+    "tract_alpha": 0.7,
+    "tract_beta": 0.3
+  },
+  "risk_thresholds": {
+    "LOW": [
+      0.0,
+      0.2
+    ],
+    "MODERATE": [
+      0.2,
+      0.4
+    ],
+    "ELEVATED": [
+      0.4,
+      0.6
+    ],
+    "HIGH": [
+      0.6,
+      0.8
+    ],
+    "VERY_HIGH": [
+      0.8,
+      1.0
+    ]
+  },
+  "functional_consequences": {
+    "Motor": {
+      "domain_id": 1,
+      "consequence": "Potential motor weakness or paresis",
+      "severity_score": 0.9,
+      "associated_structures": [
+        "Left-Cerebral-Cortex",
+        "Right-Cerebral-Cortex"
+      ],
+      "associated_tracts": [
+        "corticospinal_tract"
+      ]
+    },
+    "Language": {
+      "domain_id": 2,
+      "consequence": "Potential language impairment / aphasia",
+      "severity_score": 0.85,
+      "associated_structures": [],
+      "associated_tracts": [
+        "superior_longitudinal_fasciculus",
+        "arcuate_fasciculus"
+      ]
+    },
+    "Visual": {
+      "domain_id": 3,
+      "consequence": "Potential visual-field deficit / hemianopia",
+      "severity_score": 0.8,
+      "associated_structures": [],
+      "associated_tracts": [
+        "optic_radiations"
+      ]
+    },
+    "Interhemispheric": {
+      "domain_id": 4,
+      "consequence": "Potential disconnection syndrome / interhemispheric transfer impairment",
+      "severity_score": 0.65,
+      "associated_structures": [],
+      "associated_tracts": [
+        "corpus_callosum"
+      ]
+    },
+    "Sensory": {
+      "domain_id": 5,
+      "consequence": "Potential sensory deficit / hemihypesthesia",
+      "severity_score": 0.7,
+      "associated_structures": [
+        "Left-Thalamus",
+        "Right-Thalamus"
+      ],
+      "associated_tracts": []
+    },
+    "Coordination": {
+      "domain_id": 6,
+      "consequence": "Potential coordination or balance impairment / ataxia",
+      "severity_score": 0.75,
+      "associated_structures": [
+        "Left-Cerebellum-Cortex",
+        "Right-Cerebellum-Cortex",
+        "Left-Cerebellum-White-Matter",
+        "Right-Cerebellum-White-Matter"
+      ],
+      "associated_tracts": []
+    },
+    "Brainstem": {
+      "domain_id": 7,
+      "consequence": "Potentially severe life-critical neurological impairment",
+      "severity_score": 1.0,
+      "associated_structures": [
+        "Brain-Stem",
+        "4th-Ventricle"
+      ],
+      "associated_tracts": []
+    }
+  },
+  "tract_definitions": {
+    "corticospinal_tract": {
+      "importance": 0.95,
+      "functional_domain": "Motor",
+      "potential_consequence": "Potential motor weakness or paresis"
+    },
+    "superior_longitudinal_fasciculus": {
+      "importance": 0.85,
+      "functional_domain": "Language",
+      "potential_consequence": "Potential language / association impairment"
+    },
+    "optic_radiations": {
+      "importance": 0.8,
+      "functional_domain": "Visual",
+      "potential_consequence": "Potential visual-field deficit"
+    },
+    "corpus_callosum": {
+      "importance": 0.7,
+      "functional_domain": "Interhemispheric",
+      "potential_consequence": "Potential interhemispheric disconnection"
+    }
+  },
+  "corridor_weights": {
+    "w_length": 0.15,
+    "w_eloquent": 0.25,
+    "w_tract": 0.3,
+    "w_vessel": 0.15,
+    "w_ventricle": 0.15,
+    "w_coverage": 0.2
+  }
+}

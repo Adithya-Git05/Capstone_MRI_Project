@@ -1,0 +1,16 @@
+seed: 2026
+data_root: 1_data_and_preprocessing/data/BRISC/brisc2025
+output_root: 3_2d_segmentation/outputs/segmentation2d
+image_size: 256
+batch_size: 8
+epochs: 40
+learning_rate: 0.0003
+weight_decay: 0.0001
+validation_fraction: 0.15
+num_workers: 0
+device: cpu
+early_stopping_patience: 8
+mask_threshold: 128
+model:
+  architecture: resnet50
+  weights: none

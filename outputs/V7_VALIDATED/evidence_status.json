@@ -1,9 +1,0 @@
-{
-  "structural_evidence": "HIGH",
-  "dti_tract_evidence": "HIGH",
-  "functional_fmri_mapping": "UNAVAILABLE (fMRI not acquired for this exam)",
-  "vascular_evidence": "UNAVAILABLE (No MRA/CTA)",
-  "empirical_uncertainty": "UNAVAILABLE (Single consensus model; no ensemble)",
-  "overall_evidence_status": "MULTI-MODAL (Structural + DTI)",
-  "qc_critical_pass": true
-}

@@ -1,0 +1,38 @@
+filename,description,provenance,suggested_section,caveat
+FIGURES/architecture/system_architecture.mmd,Diagram generated from actual module/import and UI call relationships.,Dossier diagram grounded in source code; not a screenshot.,System design,Risk and RAG are optional; integration end-to-end success is not evidenced.
+FIGURES/pipeline_workflow/pipeline_workflow.mmd,"End-to-end module sequence with integrated, optional, standalone and legacy boundaries.",Dossier diagram grounded in source code.,Methodology/system design,Does not represent a verified successful run.
+FIGURES/classification/confusion_matrix_test.png,confusion matrix test,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/classification/roc_test_uncalibrated.png,roc test uncalibrated,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/classification/precision_recall_test_uncalibrated.png,precision recall test uncalibrated,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/classification/reliability_test_uncalibrated.png,reliability test uncalibrated,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/classification/confusion_matrix_test_temperature_scaled.png,confusion matrix test temperature scaled,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/classification/roc_test_temperature_scaled.png,roc test temperature scaled,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/classification/precision_recall_test_temperature_scaled.png,precision recall test temperature scaled,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/segmentation/representative_2d_test_overlays.png,representative 2d test overlays,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/segmentation/2d_test_metric_distributions.png,2d test metric distributions,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/segmentation/3d_supplied_dice_comparison.png,3d supplied dice comparison,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/segmentation/3d_derived_iou_comparison.png,3d derived iou comparison,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/segmentation/3d_supplied_hd95_comparison.png,3d supplied hd95 comparison,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/risk_mapping/risk_map_comparison_anonymized.png,risk map comparison anonymized,Existing project output; identifier/title band cropped in packaged copy,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/risk_mapping/component_maps_anonymized.png,component maps anonymized,Existing project output; identifier/title band cropped in packaged copy,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/corridor_optimization/candidate_corridor_overlay.png,candidate corridor overlay,Existing project output,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+FIGURES/corridor_optimization/pareto_tradeoff_frontier_anonymized.png,pareto tradeoff frontier anonymized,Existing project output; identifier/title band cropped in packaged copy,Results,See 13_figure_and_table_catalog.md for source-specific interpretation.
+classification_metrics.csv,Classifier metric table,Normalized from the cited source artifact(s),Results,Includes recorded validation/test and derived macro curve averages.
+confusion_matrix.csv,Exact test confusion-matrix counts,Normalized from the cited source artifact(s),Results,Counts directly read from metric JSON.
+segmentation_metrics.csv,Separate 2D and 3D segmentation metrics,Normalized from the cited source artifact(s),Results,Do not merge supplied 3D aggregates with run-level SegResNet validation.
+spatial_case_results.csv,"Risk component, tract, QC and ablation records",Normalized from the cited source artifact(s),Results,Single-example relative-risk context; ablation variants remain separate.
+corridor_results.csv,Candidate corridor metrics and Pareto status,Normalized from the cited source artifact(s),Results,Candidate trajectories only.
+rag_evaluation.csv,RAG audit counts and unavailability status,Normalized from the cited source artifact(s),Results,Not a measured retrieval-quality evaluation.
+03_module_inventory.csv,Module boundary and interface inventory,Normalized from workspace artifacts/code,Architecture,Status is evidence-scoped.
+dataset_inventory.csv,Cohort/task-specific dataset summary,Normalized from workspace artifacts/code,Data and methods,Separate datasets/splits; provenance gaps retained.
+label_mapping.csv,"BRISC, BraTS-composite and SynthSeg mappings",Normalized from workspace artifacts/code,Methods,Current BraTS raw-label release semantics remain unverified.
+segmentation_metrics.csv,2D and 3D scores including supplied aggregates,Normalized from workspace artifacts/code,Results,"Keep 2D, grouped-validation, and supplied aggregate rows distinct."
+classification_metrics.csv,Aggregate/per-class and calibrated/uncalibrated scores,Normalized from workspace artifacts/code,Results,Macro curve measures are marked derived.
+confusion_matrix.csv,Observed test confusion cells,Normalized from workspace artifacts/code,Results,Directly copied counts.
+risk_component_weights.csv,Base/effective risk weights and thresholds,Normalized from workspace artifacts/code,Methodology,"Configuration values, not outcomes."
+spatial_case_results.csv,One-example spatial metrics and ablations,Normalized from workspace artifacts/code,Results,Case identifier removed; source variants kept.
+corridor_results.csv,Candidate/baseline corridor metrics,Normalized from workspace artifacts/code,Results,Different Pareto/cost implementations identified.
+rag_configuration.csv,RAG configuration and checks,Normalized from workspace artifacts/code,Methods,Defaults may be overridden by environment.
+rag_evaluation.csv,RAG corpus/question evaluation state,Normalized from workspace artifacts/code,Results,Quality measures unavailable.
+test_inventory.csv,Static test source inventory,Normalized from workspace artifacts/code,Testing,Counts defined functions; no execution/pass result.
+16_claims_evidence_matrix.csv,High-impact claims to evidence mapping,Normalized from workspace artifacts/code,All,Explicit evidence types/caveats.

@@ -1,0 +1,48 @@
+task,source_value,model_value,meaning,status
+BRISC classification,glioma,0,Folder class label,implemented
+BRISC classification,meningioma,1,Folder class label,implemented
+BRISC classification,no_tumor,2,Folder class label,implemented
+BRISC classification,pituitary,3,Folder class label,implemented
+BRISC 2D segmentation,grayscale mask 0..255,0 if <128; 1 if >=128,Binary foreground mask; antialiased edges thresholded,implemented
+BraTS-format 3D,raw label 0,not included in tumor regions,Background per local format; release ontology not verified,local observation
+BraTS-format 3D,"raw labels 1,2,3",WT,Whole-tumor composite mask; overlapping,configured mapping
+BraTS-format 3D,"raw labels 1,3",TC,Tumor-core composite mask; overlapping,configured mapping
+BraTS-format 3D,raw label 3,ET,Enhancing-tumor composite mask,configured mapping
+BraTS-format 3D,raw label 4,RC,Region RC as defined by current local ontology; authoritative release meaning unverified,configured mapping
+Spatial risk,"risk score [0,1]",LOW/MODERATE/ELEVATED/HIGH/VERY_HIGH,Prototype display bins only; explicitly not clinically validated,configuration
+SynthSeg/FreeSurfer risk parcellation,0,Background,Background; importance weight 0.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,1,Brain-Tissue,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,2,Left-Cerebral-White-Matter,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,3,Left-Cerebral-Cortex,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,4,Left-Lateral-Ventricle,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,5,Left-Inf-Lat-Vent,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,7,Left-Cerebellum-White-Matter,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,8,Left-Cerebellum-Cortex,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,10,Left-Thalamus,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,11,Left-Caudate,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,12,Left-Putamen,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,13,Left-Pallidum,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,14,3rd-Ventricle,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,15,4th-Ventricle,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,16,Brain-Stem,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,17,Left-Hippocampus,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,18,Left-Amygdala,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,24,CSF,Background; importance weight 0.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,26,Left-Accumbens-area,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,28,Left-VentralDC,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,41,Right-Cerebral-White-Matter,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,42,Right-Cerebral-Cortex,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,43,Right-Lateral-Ventricle,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,44,Right-Inf-Lat-Vent,Critical; importance weight 1.0,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,46,Right-Cerebellum-White-Matter,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,47,Right-Cerebellum-Cortex,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,49,Right-Thalamus,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,50,Right-Caudate,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,51,Right-Putamen,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,52,Right-Pallidum,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,53,Right-Hippocampus,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,54,Right-Amygdala,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,58,Right-Accumbens-area,Important; importance weight 0.7,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,60,Right-VentralDC,General; importance weight 0.3,configured label map; input provenance must be checked
+SynthSeg/FreeSurfer risk parcellation,1000 <= ID < 3000,Cortical-Parcel-{label_id},"Important tier, importance 0.7 in code",configured fallback
+SynthSeg/FreeSurfer risk parcellation,other unmapped IDs,Unknown-{label_id},"General tier, importance 0.3 in code",configured fallback

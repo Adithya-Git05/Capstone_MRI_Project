@@ -1,0 +1,117 @@
+{
+  "model_name": "Attention-gated BRISC U-Net (BRISCAttentionUNet)",
+  "task": "2D binary tumor segmentation",
+  "status": "partially_verified",
+  "user_requested_status_category": "1 — implemented and trained, checkpoint available; imported-run provenance partly unresolved",
+  "implementation_status": "Implemented; attention gates are used on three U-Net skip paths",
+  "training_status": "40 epochs recorded; best epoch 39; official-folder test metrics present; imported checkpoint provenance is partly unresolved",
+  "identity_and_provenance": {
+    "architecture_source": "3_2d_segmentation/src/segmentation2d/model_attention.py:10-73; 3_2d_segmentation/src/segmentation2d/model.py:8-24",
+    "code_version_or_commit": null,
+    "dataset": "BRISC 2025 segmentation task",
+    "dataset_release_or_package": "BRISC 2025 local copy",
+    "dataset_root": "1_data_and_preprocessing/data/BRISC/brisc2025",
+    "training_script": "scripts/train_segmentation2d_attention.py",
+    "run_configuration": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/config.yaml",
+    "checkpoint": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/best.pt",
+    "checkpoint_bytes": 2000897,
+    "checkpoint_sha256": "282f1499be25cef06bc20d828317ab2cef17771e26891652466e0b207f1dccab",
+    "checkpoint_format": "Safe-inspected dictionary; 56 state tensors; model_state, model_config, image_size, mask_threshold, seed, best_epoch; no optimizer/scheduler",
+    "framework_versions": {
+      "training_metadata": "Python 3.13.15; PyTorch 2.11.0+cu130",
+      "test_evaluation": "Python 3.12.1; PyTorch 2.13.0+cpu"
+    },
+    "hardware": "Training metadata says CUDA but does not identify GPU; test evaluation on CPU"
+  },
+  "input_data": {
+    "modality": "Single 2D BRISC T1 MRI image",
+    "channel_order": ["grayscale"],
+    "tensor_shape": "[B,1,256,256] (NCHW)",
+    "raw_data_type_and_range": "BRISC JPEG image pixels and PNG mask intensities in [0,255]",
+    "dtype_and_range": "Float32; image normalized to [-1,1]",
+    "orientation": "Supplied 2D plane; no 3D orientation",
+    "registration": "No registration; image/mask are paired by filename stem and mismatches raise errors",
+    "resampling_and_spacing": "Original image dimensions vary; no physical spacing; image bilinear resize to 256x256; mask thresholded >=128 before nearest-neighbor resize",
+    "normalization": "(grayscale/255 - 0.5)/0.5",
+    "training_augmentations": ["Paired horizontal flip p=0.5", "Paired vertical flip p=0.5"],
+    "inference_transform": "Evaluation uses the segmentation dataset pipeline. Generic standalone CLI uses BRISCClassificationDataset with resize_mode=stretch; both use grayscale, bilinear resize, and [-1,1] normalization, but the resize path can differ.",
+    "display_alignment": "Overlay at the exact 256x256 transformed input grid",
+    "train_inference_difference": "Paired flips training-only; generic standalone CLI uses classification dataset resize path rather than BRISCSegmentationDataset. Numeric normalization is still [-1,1]."
+  },
+  "architecture": {
+    "encoder_stages": {
+      "enc1": "1->16 channels, output [B,16,256,256]",
+      "enc2": "16->32 channels, output [B,32,128,128]",
+      "enc3": "32->64 channels, output [B,64,64,64]",
+      "bottleneck": "64->128 channels, output [B,128,32,32]"
+    },
+    "convolution_block": "Two padded 3x3 Conv/GroupNorm/SiLU layers per block",
+    "pooling": "2x2 max pooling between encoder stages",
+    "attention_gates": "Additive 1x1 skip/decoder projections; SiLU, 1x1 score convolution, sigmoid; multiply skip by coefficient. Gates `att3(third,up3)`, `att2(second,up2)`, `att1(first,up1)` before decoder concatenation.",
+    "decoder_stages": ["dec3: 192->64 with gated enc3 skip", "dec2: 96->32 with gated enc2 skip", "dec1: 48->16 with gated enc1 skip", "output: 16->1"],
+    "upsampling": "Bilinear interpolation to matching skip size; align_corners=false",
+    "output_head": "One full-resolution logit channel",
+    "parameter_count": 495836,
+    "pretrained_weights": false
+  },
+  "training": {
+    "seed": 2026,
+    "train_samples": 3343,
+    "validation_samples": 590,
+    "official_train_samples": 3933,
+    "official_test_samples": 860,
+    "split_method": "Sample-level split; patient IDs unavailable",
+    "split_duplicate_caveat": "Deterministic reconstruction found 6 exact-hash groups crossing fit and validation (7 fit-side files, 6 validation-side files); not a persisted split-manifest count",
+    "loss": "0.45 BCE-with-logits + 0.45 soft Dice + 0.10 boundary-gradient L1",
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "batch_size": 8,
+    "completed_epochs": 40,
+    "best_epoch": 39,
+    "checkpoint_selection": "Best validation mean per-image Dice",
+    "early_stopping_patience": 8,
+    "scheduler": "None in this training path",
+    "training_history": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/training_history.csv",
+    "training_log": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/run.log"
+  },
+  "outputs": {
+    "logits": "[B,1,256,256]",
+    "classes": ["background", "foreground tumor"],
+    "activation": "Logits; sigmoid during evaluation",
+    "threshold": 0.5,
+    "label_remapping": "Mask intensity >=128 becomes foreground 1; below 128 becomes background 0",
+    "regions_overlap": false,
+    "postprocessing": "No morphology/cleanup evidenced",
+    "geometry_note": "Evaluation metrics are computed on the 256x256 grid; generic standalone prediction thresholds then nearest-neighbor resizes the binary mask back to each original image size"
+  },
+  "evaluation": {
+    "split": "Official-folder test; 860 images",
+    "metrics_path": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/evaluation_test_20261019_121848_909528/test_metrics.json",
+    "global_foreground_dice": 0.875253,
+    "global_foreground_iou": 0.778178,
+    "mean_per_image_dice_including_empty_targets": 0.856058,
+    "mean_per_image_iou_including_empty_targets": 0.781571,
+    "loss": 0.076798,
+    "nonempty_targets": 860,
+    "empty_targets": 0,
+    "hd95": null,
+    "test_patient_independence": "Not established; exact image duplicates do not establish patient identity",
+    "official_segmentation_train_test_hash_overlap": "7 distinct exact hashes; 9 train files and 7 test files (9 matching pairs)",
+    "test_duplicate_assignment_reconstruction": "6 hashes (6 test copies) have a fit-side train copy; 2 hashes (2 test copies) have a validation-side train copy; 1 hash is in both because it has two fit-side copies and one validation-side copy. All 7 test copies overlap a fit or validation copy and 6 have a fit-side duplicate."
+  },
+  "gradcam": {
+    "target_module": "model.bottleneck.layers[3]",
+    "observed_activation_shape": "[B,128,32,32] for 256x256 input; pre-GroupNorm/SiLU convolution",
+    "scalar_target": "Mean foreground logit over fixed selected predicted/reference ROI, or one selected pixel",
+    "tested": false,
+    "caveats": ["No saved CAM", "Attention gate output is gated skip feature, not gate coefficient", "No ROI target rule exists in project"]
+  },
+  "evidence": {
+    "preprocessing": "1_data_and_preprocessing/src/data/brisc.py:50-78,230-269",
+    "architecture": "3_2d_segmentation/src/segmentation2d/model_attention.py:10-73",
+    "loss_and_selection": "3_2d_segmentation/src/segmentation2d/engine_attention.py:56-79,346-420",
+    "training_metadata": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/metadata.json",
+    "test_evaluation_checkpoint_hash": "3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/evaluation_test_20261019_121848_909528/evaluation_metadata.json"
+  }
+}

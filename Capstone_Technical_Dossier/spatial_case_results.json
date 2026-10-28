@@ -1,0 +1,1118 @@
+[
+  {
+    "measure": "tumor_volume",
+    "value": 41919.0,
+    "unit": "mm^3",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Recorded tumor-mask volume; not a risk probability."
+  },
+  {
+    "measure": "evidence_status:structural_evidence",
+    "value": "HIGH",
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "evidence_status:dti_tract_evidence",
+    "value": "HIGH",
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "evidence_status:functional_fmri_mapping",
+    "value": "UNAVAILABLE (fMRI not acquired for this exam)",
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "evidence_status:vascular_evidence",
+    "value": "UNAVAILABLE (No MRA/CTA)",
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "evidence_status:empirical_uncertainty",
+    "value": "UNAVAILABLE (Single consensus model; no ensemble)",
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "evidence_status:overall_evidence_status",
+    "value": "MULTI-MODAL (Structural + DTI)",
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "evidence_status:qc_critical_pass",
+    "value": true,
+    "unit": "status/category",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "descriptive evidence status",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "notes": "Structural/DTI status is conditional on provided data/QC; fMRI, vascular imaging and ensemble uncertainty unavailable."
+  },
+  {
+    "measure": "spatial_qc:physical_spacing_mm",
+    "value": "[1.0, 1.0, 1.0]",
+    "unit": "mm",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "directly recorded QC",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/qc_report.json",
+    "notes": "QC agreement does not establish anatomical truth or clinical validity."
+  },
+  {
+    "measure": "spatial_qc:volume_shape",
+    "value": "[240, 240, 155]",
+    "unit": "voxels",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "directly recorded QC",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/qc_report.json",
+    "notes": "QC agreement does not establish anatomical truth or clinical validity."
+  },
+  {
+    "measure": "spatial_qc:orientation",
+    "value": "[\"L\", \"P\", \"S\"]",
+    "unit": "",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "directly recorded QC",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/qc_report.json",
+    "notes": "QC agreement does not establish anatomical truth or clinical validity."
+  },
+  {
+    "measure": "spatial_qc:all_critical_passed",
+    "value": "true",
+    "unit": "",
+    "provenance": "one saved research example; case identifier withheld",
+    "result_type": "directly recorded QC",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/qc_report.json",
+    "notes": "QC agreement does not establish anatomical truth or clinical validity."
+  },
+  {
+    "measure": "tract:corpus_callosum:tract_volume_mm3",
+    "value": 13017.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:tumor_volume_mm3",
+    "value": 41919.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:overlap_voxels",
+    "value": 0,
+    "unit": "voxels",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:tumor_overlap_fraction",
+    "value": 0.0,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:tract_overlap_fraction",
+    "value": 0.0,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:min_distance_mm",
+    "value": 9.0,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:mean_distance_mm",
+    "value": 39.12,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corpus_callosum:spatial_relationship",
+    "value": "DISJOINT",
+    "unit": "category",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 9.00 mm."
+  },
+  {
+    "measure": "tract:corticospinal_tract:tract_volume_mm3",
+    "value": 41892.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:tumor_volume_mm3",
+    "value": 41919.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:overlap_voxels",
+    "value": 1052,
+    "unit": "voxels",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:tumor_overlap_fraction",
+    "value": 0.0251,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:tract_overlap_fraction",
+    "value": 0.0251,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:min_distance_mm",
+    "value": 0.0,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:mean_distance_mm",
+    "value": 16.47,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:corticospinal_tract:spatial_relationship",
+    "value": "OVERLAPPING",
+    "unit": "category",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1052 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:optic_radiations:tract_volume_mm3",
+    "value": 13491.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:tumor_volume_mm3",
+    "value": 41919.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:overlap_voxels",
+    "value": 0,
+    "unit": "voxels",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:tumor_overlap_fraction",
+    "value": 0.0,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:tract_overlap_fraction",
+    "value": 0.0,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:min_distance_mm",
+    "value": 34.84,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:mean_distance_mm",
+    "value": 60.66,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:optic_radiations:spatial_relationship",
+    "value": "DISJOINT",
+    "unit": "category",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "No overlap; minimum distance = 34.84 mm."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:tract_volume_mm3",
+    "value": 20363.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:tumor_volume_mm3",
+    "value": 41919.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:overlap_voxels",
+    "value": 1558,
+    "unit": "voxels",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:tumor_overlap_fraction",
+    "value": 0.0372,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:tract_overlap_fraction",
+    "value": 0.0765,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:min_distance_mm",
+    "value": 0.0,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:mean_distance_mm",
+    "value": 9.93,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:superior_longitudinal_fasciculus:spatial_relationship",
+    "value": "OVERLAPPING",
+    "unit": "category",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1558 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:tract_volume_mm3",
+    "value": 256254.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:tumor_volume_mm3",
+    "value": 41919.0,
+    "unit": "mm^3",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:overlap_voxels",
+    "value": 1061,
+    "unit": "voxels",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:tumor_overlap_fraction",
+    "value": 0.0253,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:tract_overlap_fraction",
+    "value": 0.0041,
+    "unit": "fraction",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:min_distance_mm",
+    "value": 0.0,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:mean_distance_mm",
+    "value": 42.88,
+    "unit": "mm",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "tract:white_matter_tracts:spatial_relationship",
+    "value": "OVERLAPPING",
+    "unit": "category",
+    "provenance": "DTI/FA-threshold atlas ROI as described in source; one saved example",
+    "result_type": "directly recorded",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/tract_overlap_report.csv",
+    "notes": "1061 voxels co-registered in both masks. May reflect true invasion OR partial-volume / registration error. Verify DTI-to-T1 registration before clinical interpretation."
+  },
+  {
+    "measure": "ablation:older ablation summary:A (G only):mean_risk_brain",
+    "value": 0.0566,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:A (G only):max_risk_brain",
+    "value": 1.0,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:A (G only):tumor_adjacent_mean_risk_10mm",
+    "value": 0.6092,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:B (S only):mean_risk_brain",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:B (S only):max_risk_brain",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:B (S only):tumor_adjacent_mean_risk_10mm",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:C (G + S):mean_risk_brain",
+    "value": 0.1783,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:C (G + S):max_risk_brain",
+    "value": 0.65,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:C (G + S):tumor_adjacent_mean_risk_10mm",
+    "value": 0.4546,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:D (G + S + T):mean_risk_brain",
+    "value": 0.1955,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:D (G + S + T):max_risk_brain",
+    "value": 0.81,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:D (G + S + T):tumor_adjacent_mean_risk_10mm",
+    "value": 0.466,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:E (G + S + C):mean_risk_brain",
+    "value": 0.114,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:E (G + S + C):max_risk_brain",
+    "value": 0.795,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:E (G + S + C):tumor_adjacent_mean_risk_10mm",
+    "value": 0.391,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:F (G + S + T + C):mean_risk_brain",
+    "value": 0.1553,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:F (G + S + T + C):max_risk_brain",
+    "value": 0.8575,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:F (G + S + T + C):tumor_adjacent_mean_risk_10mm",
+    "value": 0.3905,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:G (Full + Uncertainty):mean_risk_brain",
+    "value": 0.1434,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.2, 'C': 0.2, 'U': 0.1}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:G (Full + Uncertainty):max_risk_brain",
+    "value": 0.765,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.2, 'C': 0.2, 'U': 0.1}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:G (Full + Uncertainty):tumor_adjacent_mean_risk_10mm",
+    "value": 0.4147,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.2, 'C': 0.2, 'U': 0.1}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:H (Full + Vascular):mean_risk_brain",
+    "value": 0.1406,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.3, 'S': 0.15, 'T': 0.2, 'C': 0.2, 'U': 0.1, 'V': 0.05}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:H (Full + Vascular):max_risk_brain",
+    "value": 0.72,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.3, 'S': 0.15, 'T': 0.2, 'C': 0.2, 'U': 0.1, 'V': 0.05}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:older ablation summary:H (Full + Vascular):tumor_adjacent_mean_risk_10mm",
+    "value": 0.3842,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.3, 'S': 0.15, 'T': 0.2, 'C': 0.2, 'U': 0.1, 'V': 0.05}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/ablation/ablation_summary.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:A (G only):mean_risk_brain",
+    "value": 0.0566,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:A (G only):max_risk_brain",
+    "value": 1.0,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:A (G only):tumor_adjacent_mean_10mm",
+    "value": 0.6092,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:A (G only):high_risk_voxels_ge0.60",
+    "value": 60374.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:B (S only):mean_risk_brain",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:B (S only):max_risk_brain",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:B (S only):tumor_adjacent_mean_10mm",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:B (S only):high_risk_voxels_ge0.60",
+    "value": 0.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:C (G+S):mean_risk_brain",
+    "value": 0.1783,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:C (G+S):max_risk_brain",
+    "value": 0.65,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:C (G+S):tumor_adjacent_mean_10mm",
+    "value": 0.4546,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:C (G+S):high_risk_voxels_ge0.60",
+    "value": 41919.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:D (G+S+T):mean_risk_brain",
+    "value": 0.1678,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:D (G+S+T):max_risk_brain",
+    "value": 0.7266,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:D (G+S+T):tumor_adjacent_mean_10mm",
+    "value": 0.4324,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:D (G+S+T):high_risk_voxels_ge0.60",
+    "value": 9290.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:E (G+S+C):mean_risk_brain",
+    "value": 0.114,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:E (G+S+C):max_risk_brain",
+    "value": 0.795,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:E (G+S+C):tumor_adjacent_mean_10mm",
+    "value": 0.391,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:E (G+S+C):high_risk_voxels_ge0.60",
+    "value": 6590.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:F (G+S+T+C):mean_risk_brain",
+    "value": 0.1322,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:F (G+S+T+C):max_risk_brain",
+    "value": 0.788,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:F (G+S+T+C):tumor_adjacent_mean_10mm",
+    "value": 0.3625,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V7_VALIDATED snapshot:F (G+S+T+C):high_risk_voxels_ge0.60",
+    "value": 8167.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:A (G only):mean_risk_brain",
+    "value": 0.0566,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:A (G only):max_risk_brain",
+    "value": 1.0,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:A (G only):tumor_adjacent_mean_10mm",
+    "value": 0.6092,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:A (G only):high_risk_voxels_ge0.60",
+    "value": 60374.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:B (S only):mean_risk_brain",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:B (S only):max_risk_brain",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:B (S only):tumor_adjacent_mean_10mm",
+    "value": 0.3,
+    "unit": "relative score",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:B (S only):high_risk_voxels_ge0.60",
+    "value": 0.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'S': 1.0}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:C (G+S):mean_risk_brain",
+    "value": 0.1783,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:C (G+S):max_risk_brain",
+    "value": 0.65,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:C (G+S):tumor_adjacent_mean_10mm",
+    "value": 0.4546,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:C (G+S):high_risk_voxels_ge0.60",
+    "value": 41919.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.5, 'S': 0.5}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:D (G+S+T):mean_risk_brain",
+    "value": 0.1678,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:D (G+S+T):max_risk_brain",
+    "value": 0.7266,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:D (G+S+T):tumor_adjacent_mean_10mm",
+    "value": 0.4324,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:D (G+S+T):high_risk_voxels_ge0.60",
+    "value": 9290.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'T': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:E (G+S+C):mean_risk_brain",
+    "value": 0.114,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:E (G+S+C):max_risk_brain",
+    "value": 0.795,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:E (G+S+C):tumor_adjacent_mean_10mm",
+    "value": 0.391,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:E (G+S+C):high_risk_voxels_ge0.60",
+    "value": 6590.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.45, 'S': 0.25, 'C': 0.3}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:F (G+S+T+C):mean_risk_brain",
+    "value": 0.1322,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:F (G+S+T+C):max_risk_brain",
+    "value": 0.788,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:F (G+S+T+C):tumor_adjacent_mean_10mm",
+    "value": 0.3625,
+    "unit": "relative score",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  },
+  {
+    "measure": "ablation:V8_ablation snapshot:F (G+S+T+C):high_risk_voxels_ge0.60",
+    "value": 8167.0,
+    "unit": "voxels",
+    "provenance": "one example; weights {'G': 0.35, 'S': 0.15, 'T': 0.25, 'C': 0.25}",
+    "result_type": "directly recorded ablation value",
+    "source_file": "Capstone_MRI_Project/outputs/V8_ablation/ablation_results.csv",
+    "notes": "Same-named configurations differ across saved versions; preserve source variants, do not reconcile."
+  }
+]

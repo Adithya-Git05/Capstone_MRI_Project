@@ -1,0 +1,83 @@
+{
+  "model_name": "EfficientNetB0 classifier",
+  "task": "2D four-class classification",
+  "status": "partially_verified",
+  "user_requested_status_category": "3 — implemented but not trained/evaluated",
+  "implementation_status": "Implemented and configured; no run artifacts found",
+  "training_status": "Not trained/evaluated in available repository evidence",
+  "identity_and_provenance": {
+    "architecture_source": "4_2d_classification/src/classification/model.py:28-49",
+    "code_version_or_commit": null,
+    "dataset": "BRISC 2025",
+    "dataset_release_or_package": "BRISC 2025 local copy",
+    "dataset_root": "1_data_and_preprocessing/data/BRISC/brisc2025",
+    "training_script": "scripts/train_classification.py",
+    "checkpoint": null,
+    "checkpoint_bytes": null,
+    "checkpoint_sha256": null,
+    "framework_versions": "No recorded model run",
+    "hardware": "No recorded model run"
+  },
+  "input_data": {
+    "modality": "Single 2D BRISC T1-weighted MRI slice",
+    "channel_order": ["grayscale"],
+    "tensor_shape": "[B,1,160,160] (NCHW)",
+    "raw_data_type_and_range": "BRISC JPEG pixels; grayscale conversion from 8-bit values [0,255]",
+    "dtype_and_range": "Float32, grayscale [0,1] then normalized to [-1,1]",
+    "orientation": "Supplied 2D plane",
+    "registration": "None",
+    "resampling_and_spacing": "No voxel spacing; centered pad/resize to 160x160",
+    "normalization": "(x - 0.5)/0.5",
+    "resize_crop_pad_interpolation": "Same configured BRISC pad preprocessing",
+    "training_augmentations": ["Horizontal flip p=0.5", "Rotation +/-7 degrees", "Brightness/contrast delta 0.08"],
+    "inference_transform": "Deterministic grayscale/pad/normalize",
+    "display_alignment": "Overlay on exact 160x160 model input",
+    "train_inference_difference": "Stochastic augmentation is training-only"
+  },
+  "architecture": {
+    "backbone": "torchvision EfficientNetB0",
+    "weights": null,
+    "pretrained": false,
+    "stem": "network.features[0][0] Conv2d(1,32,3x3,stride=2,padding=1,bias=false)",
+    "stages": "Torchvision feature trunk with nine stages; last spatial stage features[8] has final 320->1280 1x1 Conv/BatchNorm/SiLU",
+    "head": "network.classifier Dropout(0.2) then Linear(1280,4)",
+    "parameter_count": 4012096
+  },
+  "training": {
+    "seed": 2026,
+    "proposed_protocol": "Use the custom-CNN hash-aware BRISC split and existing classification training/evaluation scripts",
+    "loss": "Cross-entropy",
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "maximum_epochs": 30,
+    "scheduler": "CosineAnnealingLR with eta_min=1e-6",
+    "early_stopping_patience": 7,
+    "pretrained_weights": false
+  },
+  "outputs": {
+    "logits": "[B,4]",
+    "class_index_order": ["glioma", "meningioma", "no_tumor", "pituitary"],
+    "activation": "Raw logits; softmax for probability reporting",
+    "decision_rule": "argmax",
+    "threshold": null
+  },
+  "evaluation": {
+    "status": "No checkpoint, logs, metrics, confusion matrix, or curves found",
+    "protocol": "Evaluate on reserved official BRISC test folder only after completing a training run; disclose image-hash overlap and patient-ID limitation",
+    "required_metrics": ["Accuracy", "Balanced accuracy", "Macro/weighted precision, recall and F1", "Confusion matrix", "ROC-AUC/PR-AUC only if computed", "NLL/Brier/ECE if probabilities are evaluated"]
+  },
+  "gradcam": {
+    "target_module": "model.network.features[8]",
+    "observed_activation_shape": "[B,1280,5,5] for 160x160 input",
+    "score": "Selected raw class logit",
+    "tested": false,
+    "caveats": ["No trained checkpoint", "No Grad-CAM implementation"]
+  },
+  "evidence": {
+    "source": "4_2d_classification/src/classification/model.py:28-49",
+    "config": "configs/classification_efficientnet_b0.yaml:25-27",
+    "run_search": "No matching run/checkpoint found under outputs/classification"
+  }
+}

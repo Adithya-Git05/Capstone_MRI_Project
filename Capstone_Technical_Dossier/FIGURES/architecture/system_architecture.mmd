@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph Core["Current New project: standalone research modules"]
+    BriscData["BRISC 2D data"] --> Cls["BRISCClassifier"]
+    BriscData --> Seg2["BRISCUNet / BRISCAttentionUNet"]
+    BratsData["4 registered BraTS-format NIfTIs"] --> Loader["src.data.brats: orientation, normalization, region masks"]
+    Loader --> Seg3["MONAI SegResNet / SwinUNETR"]
+  end
+  subgraph UI["Partially integrated local Streamlit app"]
+    Upload["Upload / validate 4 modalities"] --> Orchestrator["integrated_pipeline.pipeline.run_pipeline"]
+    Orchestrator --> Seg3
+    Seg3 --> Slice["t1c axial slice extraction"]
+    Slice --> Seg2
+    Slice --> Cls
+    Seg3 --> Report["in-memory research PDF + overlays"]
+    Seg2 --> Report
+    Cls --> Report
+  end
+  Synth["Optional aligned SynthSeg labels"] -. required .-> Risk["Legacy Capstone V8 risk adapter"]
+  Seg3 -. WT prediction mask .-> Risk
+  Risk -. no DTI/tract upload in adapter .-> Report
+  Orchestrator -. explicit user authorization; structured context only .-> RAGAPI["Separate FastAPI RAG service"]
+  RAGAPI --> Report
+  Corpus["PDF catalog / chunk index"] --> RAGAPI
+  Risk -. generates candidates when valid inputs .-> Corridors["V8 corridor planner"]
+  Corridors --> Report
+  classDef current fill:#d8efff,stroke:#3274a1,color:#111;
+  classDef legacy fill:#fff0d7,stroke:#bc7c15,color:#111;
+  classDef status fill:#e5f5e0,stroke:#4c8c40,color:#111;
+  class Cls,Seg2,Loader,Seg3 current;
+  class Risk,Corridors,RAGAPI legacy;
+  class Report,Orchestrator,Slice status;

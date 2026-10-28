@@ -1,0 +1,74 @@
+[
+  {
+    "metric_or_record": "indexed_papers",
+    "value": 40,
+    "unit": "papers",
+    "status": "audited corpus count",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/corpus_audit.json",
+    "calculation": "corpus audit count; not quality evaluation"
+  },
+  {
+    "metric_or_record": "indexed_chunks",
+    "value": 1454,
+    "unit": "chunks",
+    "status": "audited corpus count",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/corpus_audit.json",
+    "calculation": "corpus audit count; not quality evaluation"
+  },
+  {
+    "metric_or_record": "evaluation_questions",
+    "value": 25,
+    "unit": "questions",
+    "status": "25 pending_annotation; 0 reviewed",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "record count"
+  },
+  {
+    "metric_or_record": "Recall@K",
+    "value": "",
+    "unit": "",
+    "status": "not reported; annotation/manual review unavailable",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "Not calculable from the pending question set; no score invented."
+  },
+  {
+    "metric_or_record": "Precision@K",
+    "value": "",
+    "unit": "",
+    "status": "not reported; annotation/manual review unavailable",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "Not calculable from the pending question set; no score invented."
+  },
+  {
+    "metric_or_record": "Citation correctness",
+    "value": "",
+    "unit": "",
+    "status": "not reported; annotation/manual review unavailable",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "Not calculable from the pending question set; no score invented."
+  },
+  {
+    "metric_or_record": "Unsupported claim rate",
+    "value": "",
+    "unit": "",
+    "status": "not reported; annotation/manual review unavailable",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "Not calculable from the pending question set; no score invented."
+  },
+  {
+    "metric_or_record": "Numerical consistency accuracy",
+    "value": "",
+    "unit": "",
+    "status": "not reported; annotation/manual review unavailable",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "Not calculable from the pending question set; no score invented."
+  },
+  {
+    "metric_or_record": "Report grounding",
+    "value": "",
+    "unit": "",
+    "status": "not reported; annotation/manual review unavailable",
+    "source": "Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json",
+    "calculation": "Not calculable from the pending question set; no score invented."
+  }
+]

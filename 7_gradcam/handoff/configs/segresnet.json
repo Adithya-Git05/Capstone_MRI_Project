@@ -1,0 +1,121 @@
+{
+  "model_name": "MONAI SegResNet",
+  "task": "3D overlapping-region segmentation",
+  "status": "partially_verified",
+  "user_requested_status_category": "1 — implemented/trained with checkpoint; one-epoch validation-only, no test result",
+  "implementation_status": "Implemented MONAI model adapter; one-epoch run and checkpoint verified",
+  "training_status": "One epoch completed; grouped validation only; not a held-out test result",
+  "identity_and_provenance": {
+    "architecture_source": "2_3d_segmentation/src/segmentation3d/models.py:8-24",
+    "code_version_or_commit": null,
+    "dataset": "Local BraTS-GLI NIfTI subset",
+    "dataset_release_or_package": "Release/version and label ontology not verified; do not assert official BraTS release semantics",
+    "dataset_root": "1_data_and_preprocessing/data/BraTS/training_data_additional",
+    "training_script": "scripts/train_segmentation3d.py",
+    "checkpoint": "2_3d_segmentation/outputs/segmentation3d/segresnet/20261019_151137_seed2026/best.pt",
+    "checkpoint_bytes": 18836959,
+    "checkpoint_sha256": "92A9F71D4E733E158DF5A1666606419CAA2E1B1E767E4B229A78E7F0C2E2CD72",
+    "checkpoint_format": "Safe-loaded dictionary; 83 model-state keys and best epoch/config/ontology metadata; no optimizer, scheduler, or RNG state",
+    "framework_versions": {
+      "python": "3.12.1",
+      "pytorch": "2.13.0+cpu",
+      "monai": "1.4.0",
+      "nibabel": "5.4.2",
+      "scipy": "1.14.1"
+    },
+    "hardware": "Windows 11 CPU; exact CPU model not recorded"
+  },
+  "input_data": {
+    "dataset_counts": "271 case folders, 1355 NIfTI files (271 each of four modalities plus segmentation)",
+    "modality": "Four aligned 3D MRI volumes",
+    "channel_order": ["t2f", "t1n", "t1c", "t2w"],
+    "tensor_shape": "Training [B,4,96,96,96]; source array [C,X,Y,Z], normalized to RAS",
+    "raw_data_type_and_range": "NIfTI source header dtype/min-max not summarized in run metadata; loader reads float32 and applies per-channel z-score",
+    "dtype_and_range": "Float32 z-score values per modality over nonzero voxels; zero background retained; no fixed min/max range",
+    "orientation": "Input reoriented to RAS; shape/affine checked across modalities",
+    "registration": "Modalities and segmentation must have matching shape/affine; no registration performed by loader",
+    "resampling_and_spacing": "No resampling; local validation found 1x1x1 mm spacing",
+    "normalization": "Per-modality z-score over nonzero voxels",
+    "training_crop_and_padding": "Random 96-cube crop; zero-pad if a dimension is smaller",
+    "training_augmentations": ["Independent flips on each of three axes, p=0.5"],
+    "inference": "Full-volume sliding window ROI 96x96x96, sw_batch_size=1, overlap=0.25, default constant blending",
+    "display_alignment": "Produce CAM in RAS model-array coordinates and retain RAS affine; invert orientation only when explicitly displaying original array order",
+    "train_inference_difference": "Random crop and flips are training-only; inference operates over full volume"
+  },
+  "architecture": {
+    "spatial_dims": 3,
+    "input_channels": 4,
+    "output_channels": 4,
+    "init_filters": 16,
+    "parameter_count": null,
+    "parameter_count_note": "Not reported/calculated in the saved run artifacts",
+    "output_meaning": "Four independent region logits, channel order WT, TC, ET, RC",
+    "ontology": {
+      "name": "brats_post_treatment_composites_v1",
+      "WT_raw_labels": [1, 2, 3],
+      "TC_raw_labels": [1, 3],
+      "ET_raw_labels": [3],
+      "RC_raw_labels": [4],
+      "verification": "PROVISIONAL — ONTOLOGY VERIFICATION REQUIRED; release_provenance_verified=false"
+    },
+    "regions_overlap": true
+  },
+  "training": {
+    "seed": 2026,
+    "run_train_validation_cases": "215 train / 56 validation",
+    "grouping": "Folder-name prefix before final hyphen; 108 train groups / 10 validation groups; not verified patient identities",
+    "loss": "Equal-weight BCE-with-logits + soft Dice",
+    "optimizer": "AdamW",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "batch_size": 1,
+    "configured_folds": 5,
+    "folds_executed": 1,
+    "folds_note": "The saved run performed one grouped train/validation split; folds:5 did not trigger five-fold cross-validation",
+    "base_epochs": 100,
+    "run_epochs": 1,
+    "base_early_stopping_patience": 30,
+    "run_early_stopping_patience": 1,
+    "scheduler": "None in current training loop",
+    "checkpoint_selection": "Mean per-case Dice over the four regions",
+    "activation_checkpointing": "SwinUNETR config uses checkpointing; SegResNet does not use it",
+    "training_history": "2_3d_segmentation/outputs/segmentation3d/segresnet/20261019_151137_seed2026/training_history.csv"
+  },
+  "outputs": {
+    "logits": "[B,4,D,H,W]",
+    "channel_order": ["WT", "TC", "ET", "RC"],
+    "activation": "Sigmoid applied independently per region",
+    "threshold": 0.5,
+    "label_remapping": "Raw labels mapped to independent binary region channels as specified; mapping remains provisional",
+    "regions_overlap": true,
+    "postprocessing": "Threshold only; uint8 mask saved using reoriented input affine; no output interpolation"
+  },
+  "evaluation": {
+    "split": "56-case grouped validation; no official test split available",
+    "metrics_path": "2_3d_segmentation/outputs/segmentation3d/segresnet/20261019_151137_seed2026/metrics.json",
+    "regions": {
+      "WT": {"dice": 0.5008500023053353, "iou": 0.37002391657457473, "hd95_mm": 61.12821558295854, "hd95_valid_cases": "56/56"},
+      "TC": {"dice": 0.24449682992013796, "iou": 0.1616153830108721, "hd95_mm": 75.46866441671652, "hd95_valid_cases": "53/56"},
+      "ET": {"dice": 0.1563791701858778, "iou": 0.0935268808894704, "hd95_mm": 77.25206124684985, "hd95_valid_cases": "53/56"},
+      "RC": {"dice": 0.07108233768774333, "iou": 0.044499788096276846, "hd95_mm": 77.50027188755004, "hd95_valid_cases": "45/56"}
+    },
+    "validation_loss": 0.7481152223689216,
+    "metric_definition": "Per-case Dice/IoU; both-empty masks score 1; HD95 invalid/null if either mask empty; symmetric 95th percentile surface distance using voxel spacing",
+    "reproducibility_caveat": "Separate reported_metrics.csv has unsupported cohort/split provenance and must not be substituted for this run result"
+  },
+  "gradcam": {
+    "target_module": "model.down_layers[3][4].conv2.conv",
+    "observed_activation_shape": "[B,128,12,12,12] for 96-cube input",
+    "scalar_target": "Mean selected region logit over a fixed 3D ROI",
+    "tested": false,
+    "caveats": ["No Grad-CAM implementation", "Volumetric hook/activation inspected on synthetic forward", "Full sliding-window attribution can be memory intensive"]
+  },
+  "evidence": {
+    "base_config": "configs/segmentation3d.yaml:1-30",
+    "run_config": "2_3d_segmentation/outputs/segmentation3d/segresnet/20261019_151137_seed2026/config.yaml:1-44",
+    "dataset_validation": "outputs/data_validation/brats.json:4-19,42-65",
+    "loader": "1_data_and_preprocessing/src/data/brats.py:174-212,246-257,304-325",
+    "inference": "2_3d_segmentation/src/segmentation3d/monai_engine.py:163-223,276-284",
+    "metrics": "2_3d_segmentation/src/segmentation3d/metrics.py:10-65"
+  }
+}

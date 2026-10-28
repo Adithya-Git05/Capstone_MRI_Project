@@ -1,0 +1,89 @@
+{
+  "model_name": "ResNet50 encoder U-Net",
+  "task": "2D binary tumor segmentation",
+  "status": "partially_verified",
+  "user_requested_status_category": "3 — implemented but not trained/evaluated",
+  "implementation_status": "Implemented architecture and config; no trained run found",
+  "training_status": "Not successfully trained/evaluated in local artifacts",
+  "identity_and_provenance": {
+    "architecture_source": "3_2d_segmentation/src/segmentation2d/model.py:69-113",
+    "code_version_or_commit": null,
+    "dataset": "BRISC 2025 segmentation task",
+    "dataset_release_or_package": "BRISC 2025 local copy",
+    "dataset_root": "1_data_and_preprocessing/data/BRISC/brisc2025",
+    "training_script": "scripts/train_segmentation2d.py",
+    "checkpoint": null,
+    "checkpoint_bytes": null,
+    "checkpoint_sha256": null,
+    "framework_versions": "No run environment recorded; local torchvision unavailable during shape check",
+    "hardware": "No run recorded"
+  },
+  "input_data": {
+    "modality": "Single 2D T1 MRI image",
+    "channel_order": ["grayscale"],
+    "tensor_shape": "[B,1,256,256]",
+    "raw_data_type_and_range": "BRISC JPEG image pixels and PNG mask intensities in [0,255]",
+    "dtype_and_range": "Float32; grayscale normalized to [-1,1]",
+    "orientation": "Supplied 2D plane",
+    "registration": "No registration; image/mask paired by stem",
+    "resampling_and_spacing": "Original image dimensions vary; image bilinear resize to 256x256; mask >=128 thresholded then nearest-neighbor resize",
+    "normalization": "(grayscale/255 - 0.5)/0.5",
+    "training_augmentations": ["Paired horizontal flip p=0.5", "Paired vertical flip p=0.5"],
+    "inference_transform": "Generic standalone CLI uses BRISCClassificationDataset with resize_mode=stretch; grayscale, bilinear resize, and [-1,1] normalization",
+    "display_alignment": "Use the exact 256x256 input",
+    "train_inference_difference": "Training-only flips; generic CLI resize path can differ from BRISCSegmentationDataset"
+  },
+  "architecture": {
+    "backbone": "torchvision ResNet50 with weights=None",
+    "input_stem": "One-channel conv emits [B,64,128,128]; pool/layer1 [B,256,64,64]; layer2 [B,512,32,32]; layer3 [B,1024,16,16]; layer4 [B,2048,8,8]",
+    "encoder_skips": ["stem", "layer1", "layer2", "layer3"],
+    "deepest_encoder": "layer4",
+    "decoder_stages": ["dec3: 3072->256 with layer3", "dec2: 768->128 with layer2", "dec1: 384->64 with layer1", "dec0: 128->32 with stem", "head: ConvBlock(32,32) then 1x1 conv to one logit"],
+    "upsampling": "Bilinear interpolation to each skip size, align_corners=false; final head output bilinearly interpolated to input resolution",
+    "output_head": "One-channel binary foreground logit",
+    "pretrained_weights": false,
+    "parameter_count": null
+  },
+  "training": {
+    "status": "Proposed baseline from implemented config/engine, not a result",
+    "seed": 2026,
+    "image_size": 256,
+    "batch_size": 8,
+    "maximum_epochs": 40,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "loss": "Equal BCE-with-logits + soft Dice",
+    "validation_fraction": 0.15,
+    "early_stopping_patience": 8,
+    "checkpoint_selection": "Best validation Dice",
+    "scheduler": "None evidenced in generic engine",
+    "mask_threshold": 128,
+    "pretrained_weights": false
+  },
+  "outputs": {
+    "logits": "[B,1,256,256]",
+    "classes": ["background", "foreground tumor"],
+    "activation": "Sigmoid probability",
+    "threshold": 0.5,
+    "regions_overlap": false,
+    "postprocessing": "No morphology; generic standalone prediction nearest-neighbor resizes thresholded binary output to original image dimensions"
+  },
+  "evaluation": {
+    "status": "No run, checkpoint, or metrics",
+    "proposed_metrics": ["Global foreground Dice/IoU", "Mean per-image Dice/IoU", "Boundary metric only if implemented and reported"],
+    "protocol": "Use same hash-aware split and untouched official test membership as the other 2D segmentation baseline; patient identity unavailable"
+  },
+  "gradcam": {
+    "target_module": "model.layer4",
+    "activation_shape": "Expected [B,2048,8,8] for 256x256; source-derived, not forward-observed locally",
+    "scalar_target": "Mean foreground logit over a fixed selected ROI or selected pixel",
+    "tested": false,
+    "caveats": ["No checkpoint", "Torchvision unavailable during local forward verification", "Do not reuse Attention U-Net scores"]
+  },
+  "evidence": {
+    "architecture": "3_2d_segmentation/src/segmentation2d/model.py:69-113",
+    "config": "configs/segmentation2d_resnet50.yaml:1-16",
+    "generic_training_engine": "3_2d_segmentation/src/segmentation2d/engine.py:26-37,73-82,203-289"
+  }
+}

@@ -1,0 +1,331 @@
+[
+  {
+    "task": "BRISC classification",
+    "source_value": "glioma",
+    "model_value": 0,
+    "meaning": "Folder class label",
+    "status": "implemented"
+  },
+  {
+    "task": "BRISC classification",
+    "source_value": "meningioma",
+    "model_value": 1,
+    "meaning": "Folder class label",
+    "status": "implemented"
+  },
+  {
+    "task": "BRISC classification",
+    "source_value": "no_tumor",
+    "model_value": 2,
+    "meaning": "Folder class label",
+    "status": "implemented"
+  },
+  {
+    "task": "BRISC classification",
+    "source_value": "pituitary",
+    "model_value": 3,
+    "meaning": "Folder class label",
+    "status": "implemented"
+  },
+  {
+    "task": "BRISC 2D segmentation",
+    "source_value": "grayscale mask 0..255",
+    "model_value": "0 if <128; 1 if >=128",
+    "meaning": "Binary foreground mask; antialiased edges thresholded",
+    "status": "implemented"
+  },
+  {
+    "task": "BraTS-format 3D",
+    "source_value": "raw label 0",
+    "model_value": "not included in tumor regions",
+    "meaning": "Background per local format; release ontology not verified",
+    "status": "local observation"
+  },
+  {
+    "task": "BraTS-format 3D",
+    "source_value": "raw labels 1,2,3",
+    "model_value": "WT",
+    "meaning": "Whole-tumor composite mask; overlapping",
+    "status": "configured mapping"
+  },
+  {
+    "task": "BraTS-format 3D",
+    "source_value": "raw labels 1,3",
+    "model_value": "TC",
+    "meaning": "Tumor-core composite mask; overlapping",
+    "status": "configured mapping"
+  },
+  {
+    "task": "BraTS-format 3D",
+    "source_value": "raw label 3",
+    "model_value": "ET",
+    "meaning": "Enhancing-tumor composite mask",
+    "status": "configured mapping"
+  },
+  {
+    "task": "BraTS-format 3D",
+    "source_value": "raw label 4",
+    "model_value": "RC",
+    "meaning": "Region RC as defined by current local ontology; authoritative release meaning unverified",
+    "status": "configured mapping"
+  },
+  {
+    "task": "Spatial risk",
+    "source_value": "risk score [0,1]",
+    "model_value": "LOW/MODERATE/ELEVATED/HIGH/VERY_HIGH",
+    "meaning": "Prototype display bins only; explicitly not clinically validated",
+    "status": "configuration"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 0,
+    "model_value": "Background",
+    "meaning": "Background; importance weight 0.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 1,
+    "model_value": "Brain-Tissue",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 2,
+    "model_value": "Left-Cerebral-White-Matter",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 3,
+    "model_value": "Left-Cerebral-Cortex",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 4,
+    "model_value": "Left-Lateral-Ventricle",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 5,
+    "model_value": "Left-Inf-Lat-Vent",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 7,
+    "model_value": "Left-Cerebellum-White-Matter",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 8,
+    "model_value": "Left-Cerebellum-Cortex",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 10,
+    "model_value": "Left-Thalamus",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 11,
+    "model_value": "Left-Caudate",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 12,
+    "model_value": "Left-Putamen",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 13,
+    "model_value": "Left-Pallidum",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 14,
+    "model_value": "3rd-Ventricle",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 15,
+    "model_value": "4th-Ventricle",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 16,
+    "model_value": "Brain-Stem",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 17,
+    "model_value": "Left-Hippocampus",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 18,
+    "model_value": "Left-Amygdala",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 24,
+    "model_value": "CSF",
+    "meaning": "Background; importance weight 0.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 26,
+    "model_value": "Left-Accumbens-area",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 28,
+    "model_value": "Left-VentralDC",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 41,
+    "model_value": "Right-Cerebral-White-Matter",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 42,
+    "model_value": "Right-Cerebral-Cortex",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 43,
+    "model_value": "Right-Lateral-Ventricle",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 44,
+    "model_value": "Right-Inf-Lat-Vent",
+    "meaning": "Critical; importance weight 1.0",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 46,
+    "model_value": "Right-Cerebellum-White-Matter",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 47,
+    "model_value": "Right-Cerebellum-Cortex",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 49,
+    "model_value": "Right-Thalamus",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 50,
+    "model_value": "Right-Caudate",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 51,
+    "model_value": "Right-Putamen",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 52,
+    "model_value": "Right-Pallidum",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 53,
+    "model_value": "Right-Hippocampus",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 54,
+    "model_value": "Right-Amygdala",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 58,
+    "model_value": "Right-Accumbens-area",
+    "meaning": "Important; importance weight 0.7",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": 60,
+    "model_value": "Right-VentralDC",
+    "meaning": "General; importance weight 0.3",
+    "status": "configured label map; input provenance must be checked"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": "1000 <= ID < 3000",
+    "model_value": "Cortical-Parcel-{label_id}",
+    "meaning": "Important tier, importance 0.7 in code",
+    "status": "configured fallback"
+  },
+  {
+    "task": "SynthSeg/FreeSurfer risk parcellation",
+    "source_value": "other unmapped IDs",
+    "model_value": "Unknown-{label_id}",
+    "meaning": "General tier, importance 0.3 in code",
+    "status": "configured fallback"
+  }
+]

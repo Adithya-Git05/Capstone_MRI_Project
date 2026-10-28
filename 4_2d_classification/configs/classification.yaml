@@ -1,0 +1,27 @@
+seed: 2026
+data_root: 1_data_and_preprocessing/data/BRISC/brisc2025
+output_root: 4_2d_classification/outputs/classification
+image_size: 160
+batch_size: 32
+epochs: 30
+learning_rate: 0.001
+weight_decay: 0.0001
+validation_fraction: 0.15
+calibration_fraction: 0.1
+num_workers: 0
+device: auto
+early_stopping_patience: 7
+resize_mode: pad
+augmentation:
+  enabled: true
+  horizontal_flip_probability: 0.5
+  rotation_degrees: 7.0
+  brightness_delta: 0.08
+  contrast_delta: 0.08
+scheduler:
+  enabled: true
+  name: cosine
+  eta_min: 0.000001
+model:
+  width: 32
+  dropout: 0.25

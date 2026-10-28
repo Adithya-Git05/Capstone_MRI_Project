@@ -1,0 +1,16 @@
+setting,value,source
+PDF extraction,PyMuPDF fitz; hyphenated linebreak cleanup; whitespace collapse,Capstone_MRI_Project/rag-chatbot/src/ingestion.py
+Chunking,sentence-aware; target 400 words; overlap 60 words,Capstone_MRI_Project/rag-chatbot/src/chunking.py
+Embedding model default,sentence-transformers/all-MiniLM-L6-v2,Capstone_MRI_Project/rag-chatbot/src/config.py
+Vector index,"normalized embeddings; compatible persisted index checks corpus hash, ordered chunk IDs, model name; token-set fallback if optional model cannot load",Capstone_MRI_Project/rag-chatbot/src/vector_retriever.py
+Lexical retrieval,"custom BM25-like scoring; candidate limit max(top_k*3,10)",Capstone_MRI_Project/rag-chatbot/src/bm25_retriever.py; hybrid_retriever.py
+Fusion,reciprocal rank fusion; RRF_K=60; combined lexical/vector ranks,Capstone_MRI_Project/rag-chatbot/src/hybrid_retriever.py; config.py
+Reranker default,cross-encoder/ms-marco-MiniLM-L-6-v2; token overlap fallback,Capstone_MRI_Project/rag-chatbot/src/config.py; reranker.py
+Retrieval limits,TOP_K=5; MAX_CHUNKS_PER_PAPER=2,Capstone_MRI_Project/rag-chatbot/src/config.py
+Relevance gate,threshold 0.35; weighted overlap/rerank/domain score with planning/population penalties,Capstone_MRI_Project/rag-chatbot/src/relevance.py; config.py
+Generation default,Ollama llama3.2:3b; JSON mode; 90s timeout; passage prompt truncation 1600 chars,Capstone_MRI_Project/rag-chatbot/src/config.py; llm.py
+Citation check,model citations normalized to exact retrieved chunk IDs; unresolved references marked unverified,Capstone_MRI_Project/rag-chatbot/src/llm.py; verification.py
+Claim support check,token-overlap ratio; support threshold 0.35; methodology/calculation claims forced unverified; not semantic entailment,Capstone_MRI_Project/rag-chatbot/src/verification.py
+Numerical consistency,"checks named patient-context fields against answer; tolerance max(1e-6, relative 1e-4, integer 0.5 or noninteger max(0.005, 5%)); deterministic consistency only",Capstone_MRI_Project/rag-chatbot/src/verification.py
+API request schema,question min_length=3; case_id default DEMO_001; optional extensible PatientContext,Capstone_MRI_Project/rag-chatbot/src/schemas.py
+Integration transport,"POST /api/rag/query sends ID, question, structured outputs only after explicit UI authorization; raw MRI not sent",integrated_pipeline/modules/rag_adapter.py; app.py

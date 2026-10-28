@@ -1,0 +1,124 @@
+{
+  "model_name": "Custom four-stage CNN",
+  "task": "2D four-class classification",
+  "status": "verified",
+  "user_requested_status_category": "1 — implemented and trained, checkpoint available",
+  "implementation_status": "Implemented; 389348 parameters verified",
+  "training_status": "30 epochs completed; best epoch 29; official-folder test evaluation exists",
+  "identity_and_provenance": {
+    "architecture_source": "4_2d_classification/src/classification/model.py:52-77",
+    "code_version_or_commit": null,
+    "dataset": "BRISC 2025",
+    "dataset_release_or_package": "BRISC 2025 local copy; upstream release/package checksum recorded by manifest",
+    "dataset_root": "1_data_and_preprocessing/data/BRISC/brisc2025",
+    "dataset_manifest_sha256": {
+      "manifest.csv": "4eaa0c3b88ce1fd246d90382c1dcd1010cc126fff1bd3a4a415159661ca8b605",
+      "manifest.json": "ada767e102e9e7ee788b50188712dfe19ba825c250c362d831b560902c249e3a"
+    },
+    "training_script": "scripts/train_classification.py",
+    "checkpoint": "4_2d_classification/outputs/classification/20261019_104128_seed2026/best.pt",
+    "checkpoint_bytes": 1563901,
+    "checkpoint_sha256": "CE8D857CFB2048DA1771B2F1E7A4F9988B0635EAB224E578526F7278FC564B58",
+    "checkpoint_format": "Safe-loaded dictionary; model_state plus config, classes, preprocessing, seed, best_epoch, temperature, manifest hash, calibration metadata; no optimizer state",
+    "framework_versions": {
+      "training_record": "Python 3.12.1; PyTorch 2.13.0+cpu",
+      "local_runtime_at_audit": "Not used as a claim about historical training"
+    },
+    "hardware": "Windows 11; CPU; exact CPU model not recorded"
+  },
+  "input_data": {
+    "modality": "Single 2D BRISC T1-weighted MRI slice",
+    "channel_order": ["grayscale"],
+    "tensor_shape": "[B,1,160,160] (NCHW)",
+    "raw_data_type_and_range": "BRISC JPEG pixels; loaded/converted as grayscale from 8-bit image values [0,255]",
+    "dtype_and_range": "Float32 model input; grayscale converted to [0,1], then normalized to [-1,1]",
+    "orientation": "Supplied 2D plane; no 3D reorientation operation",
+    "registration": "No registration performed or required by this image-level loader",
+    "resampling_and_spacing": "No voxel spacing; 2D image resized/padded to 160x160",
+    "normalization": "x -> (x - 0.5) / 0.5",
+    "resize_crop_pad_interpolation": "Centered black padding/resize to 160x160 with configured pad mode; source dimension distribution not recorded in this run; exact transform in 1_data_and_preprocessing/src/data/brisc.py",
+    "training_augmentations": ["Horizontal flip p=0.5", "Rotation +/-7 degrees", "Brightness and contrast delta 0.08"],
+    "inference_transform": "Same grayscale conversion, pad/resize, and [-1,1] normalization; no stochastic augmentation",
+    "display_alignment": "Overlay against the exact padded/resized 160x160 grayscale input",
+    "train_inference_difference": "Stochastic augmentations are training-only"
+  },
+  "architecture": {
+    "input_channels": 1,
+    "stages": [
+      "Conv2d 1->32, 3x3, stride 1, padding 1, bias false; GroupNorm(8); SiLU; MaxPool2d(2)",
+      "Conv2d 32->64, 3x3, stride 1, padding 1, bias false; GroupNorm(8); SiLU; MaxPool2d(2)",
+      "Conv2d 64->128, 3x3, stride 1, padding 1, bias false; GroupNorm(8); SiLU; MaxPool2d(2)",
+      "Conv2d 128->256, 3x3, stride 1, padding 1, bias false; GroupNorm(8); SiLU; MaxPool2d(2)"
+    ],
+    "pooling_and_head": "Adaptive average pool to 1x1; flatten; Dropout(0.25); Linear(256,4)",
+    "parameter_count": 389348,
+    "pretrained_weights": false
+  },
+  "training": {
+    "seed": 2026,
+    "split": {
+      "model_fit": 3742,
+      "validation": 749,
+      "calibration": 500,
+      "official_test": 1000,
+      "excluded_train_files": 9,
+      "excluded_due_to_distinct_hashes_overlapping_official_test": 7,
+      "grouping_and_leakage_note": "Exact image hashes grouped for internal partitions; seven hashes remain shared across official train/test, but corresponding train-side copies were excluded from this run's internal partitions; patient-level separation unverified"
+    },
+    "loss": "Cross-entropy over raw four-class logits",
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "maximum_epochs": 30,
+    "completed_epochs": 30,
+    "best_epoch": 29,
+    "checkpoint_selection": "Minimum validation cross-entropy",
+    "scheduler": "CosineAnnealingLR; eta_min=1e-6",
+    "early_stopping_patience": 7,
+    "pretrained_weights": false,
+    "training_history": "4_2d_classification/outputs/classification/20261019_104128_seed2026/training_history.csv"
+  },
+  "outputs": {
+    "logits": "[B,4]",
+    "class_index_order": ["glioma", "meningioma", "no_tumor", "pituitary"],
+    "activation": "Raw logits; softmax is applied in evaluation for probabilities",
+    "decision_rule": "argmax; no classification threshold",
+    "calibration": "Temperature T=0.7881783159 fit on the 500-example calibration subset; raw and scaled probability metrics are saved separately"
+  },
+  "evaluation": {
+    "split": "Official BRISC test folder; n=1000",
+    "metrics_path": "4_2d_classification/outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json",
+    "accuracy": 0.866,
+    "balanced_accuracy": 0.8822,
+    "macro_precision": 0.8559,
+    "macro_recall": 0.8822,
+    "macro_f1": 0.8618,
+    "weighted_f1": 0.8652,
+    "raw_nll": 0.3356,
+    "raw_brier": 0.1964,
+    "raw_ece": 0.0187,
+    "raw_roc_auc_ovr_macro_derived": 0.977906,
+    "raw_roc_auc_ovr_support_weighted_derived": 0.974425,
+    "raw_pr_auc_ovr_macro_derived": 0.943957,
+    "raw_pr_auc_ovr_support_weighted_derived": 0.937034,
+    "auc_note": "AUC per-class values are stored; macro/weighted summaries above were calculated from them using supports 254/306/140/300 and are not directly stored.",
+    "confusion_matrix_actual_rows_predicted_columns": [[211, 38, 0, 5], [11, 226, 53, 16], [0, 1, 139, 0], [3, 5, 2, 290]],
+    "test_overlap_caveat": "Seven exact image hashes are shared between the official train and test trees; do not describe the test set as fully independent."
+  },
+  "gradcam": {
+    "target_module": "model.features[14]",
+    "observed_activation_shape": "[B,256,20,20] for 160x160 input",
+    "score": "Selected class logit; predicted class and optional ground-truth class",
+    "tested": false,
+    "caveats": ["No Grad-CAM implementation or saved CAM found", "Use the same grayscale padded/resized input for overlay"]
+  },
+  "evidence": {
+    "dataset_and_preprocessing": "1_data_and_preprocessing/src/data/brisc.py:14-41,208-227",
+    "training_configuration": "configs/classification.yaml:1-27",
+    "training_engine": "4_2d_classification/src/classification/engine.py:342-360,415-420,491-505",
+    "run_metadata": "4_2d_classification/outputs/classification/20261019_104128_seed2026/metadata.json:19-24,56-75,115-120",
+    "test_metrics_and_confusion": "4_2d_classification/outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json:2-109",
+    "evaluation_protocol": "4_2d_classification/outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/evaluation_metadata.json:3-9"
+  }
+}

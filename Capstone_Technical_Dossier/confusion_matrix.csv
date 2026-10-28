@@ -1,0 +1,17 @@
+split,actual_class,predicted_class,count,source_file,result_type
+test,glioma,glioma,211,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,glioma,meningioma,38,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,glioma,no_tumor,0,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,glioma,pituitary,5,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,meningioma,glioma,11,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,meningioma,meningioma,226,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,meningioma,no_tumor,53,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,meningioma,pituitary,16,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,no_tumor,glioma,0,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,no_tumor,meningioma,1,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,no_tumor,no_tumor,139,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,no_tumor,pituitary,0,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,pituitary,glioma,3,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,pituitary,meningioma,5,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,pituitary,no_tumor,2,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count
+test,pituitary,pituitary,290,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json,directly recorded count

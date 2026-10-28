@@ -1,2 +1,0 @@
-patient_id,tumor_volume_cm3,tumor_centroid,histological_grade,best_corridor_id,best_corridor_name,trajectory_length_mm,mean_risk,peak_hazard,baseline_mean_risk,risk_reduction_pct
-UCSF-PDGM-0004,41.92,"[162, 154, 105]",HGG,4,Corridor-4 (Pterional/Temporal),56.11,0.2547,0.6938,N/A,N/A

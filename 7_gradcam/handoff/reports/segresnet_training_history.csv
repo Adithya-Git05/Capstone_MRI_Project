@@ -1,0 +1,2 @@
+epoch,train_loss,validation_loss,validation_mean_region_dice
+1,0.7663272719050562,0.7481152223689216,0.24320208502477358

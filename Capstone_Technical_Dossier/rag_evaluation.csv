@@ -1,0 +1,10 @@
+metric_or_record,value,unit,status,source,calculation
+indexed_papers,40,papers,audited corpus count,Capstone_MRI_Project/rag-chatbot/data/corpus_audit.json,corpus audit count; not quality evaluation
+indexed_chunks,1454,chunks,audited corpus count,Capstone_MRI_Project/rag-chatbot/data/corpus_audit.json,corpus audit count; not quality evaluation
+evaluation_questions,25,questions,25 pending_annotation; 0 reviewed,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,record count
+Recall@K,,,not reported; annotation/manual review unavailable,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,Not calculable from the pending question set; no score invented.
+Precision@K,,,not reported; annotation/manual review unavailable,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,Not calculable from the pending question set; no score invented.
+Citation correctness,,,not reported; annotation/manual review unavailable,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,Not calculable from the pending question set; no score invented.
+Unsupported claim rate,,,not reported; annotation/manual review unavailable,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,Not calculable from the pending question set; no score invented.
+Numerical consistency accuracy,,,not reported; annotation/manual review unavailable,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,Not calculable from the pending question set; no score invented.
+Report grounding,,,not reported; annotation/manual review unavailable,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json,Not calculable from the pending question set; no score invented.

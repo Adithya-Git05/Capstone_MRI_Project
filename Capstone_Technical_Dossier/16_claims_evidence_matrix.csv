@@ -1,0 +1,14 @@
+claim,supporting_artifact_or_code,evidence_status,qualification
+Classifier test accuracy 0.866,outputs/classification/20261019_104128_seed2026/evaluation_test_20261019_112654/metrics.json; classification_metrics.csv,directly recorded,"Official test folder, n=1000; model code excluded exact hash overlaps from training, but no patient-level independence."
+Macro AUROC/AUPRC in dossier,evaluation_test.../metrics.json per_class[].auroc_ovr/auprc_ovr,derived,Arithmetic mean of four one-vs-rest values; source does not store macro fields.
+2D segmentation test Dice and IoU,outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/evaluation_test_20261019_121848_909528/test_metrics.json,directly recorded,Binary foreground; n=860; not 3D.
+SegResNet grouped-validation region scores,outputs/segmentation3d/segresnet/20261019_151137_seed2026/metrics.json,directly recorded,n=56; one completed epoch; not test.
+Supplied WT/TC/ET/RC comparative values,outputs/segmentation3d/segmentation_paper_figures/reported_metrics.csv,supplied aggregate,No cohort/split/n documented; differs substantially from current SegResNet run.
+Current region definitions,configs/segmentation3d.yaml; src/data/brats.py:REGION_LABELS,configuration,Local raw-label ontology is explicitly provisional and release provenance unverified.
+Risk component equation and dynamic renormalization,"Capstone_MRI_Project/pipeline/v7_risk_components.py:calculate_proximity_risk, calculate_improved_tract_risk, combine_active_risk_components",implemented behavior,"Relative research scores, not calibrated injury probabilities."
+Corridor candidate metrics,Capstone_MRI_Project/outputs/V8_CORRIDORS/corridor_results.csv,directly recorded,One saved example; cost formula/metadata caveats documented.
+Corridor A* and Pareto objectives,"Capstone_MRI_Project/pipeline/run_v8_pipeline.py:astar_3d, plan_corridors_v8, pareto_analysis; pareto_frontier_analysis.py:evaluate_pareto_front",implemented behavior; conflicting variants,Different A* cost scaling and Pareto objectives in separate files.
+RAG corpus count,Capstone_MRI_Project/rag-chatbot/data/corpus_audit.json,directly recorded audit,"40 papers, 1454 chunks; not retrieval-quality evaluation."
+RAG evaluation scores,Capstone_MRI_Project/rag-chatbot/data/evaluation_questions.json; Capstone_MRI_Project/rag-chatbot/scripts/evaluate.py,unavailable,All questions pending; evaluator returns without scores.
+Complete end-to-end app passes,integrated_pipeline/tests/test_pipeline.py; integrated_pipeline/README.md,unsupported/unavailable,Tests are defined; no recorded execution summary or full application run.
+Patient/case identifiers,source example artifacts and visualizations,redacted,Identifiers omitted from text and selected figure title bands cropped; no patient source data included.

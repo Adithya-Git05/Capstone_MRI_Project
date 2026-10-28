@@ -1,2 +1,0 @@
-Label_ID,Structure_Name,Functional_Domain,Potential_Consequence,Importance_Score,Min_Distance_to_Tumor_mm,Mean_Distance_to_Tumor_mm,Proximity_Risk,Tract_Risk,Functional_Consequence_Score,Combined_Risk,Risk_Label,Data_Availability,Confidence_Status
-1,Brain-Tissue,General Cortex,Potential local parenchymal disruption,0.3,0.0,48.0,0.0566,0.3167,0.0452,0.1524,LOW,Structural+DTI,HIGH

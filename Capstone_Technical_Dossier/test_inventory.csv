@@ -1,0 +1,8 @@
+test_file,defined_test_functions,test_framework_or_style,execution_status,scope_note
+tests/test_classification.py,3,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.
+tests/test_attention_segmentation.py,4,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.
+tests/test_segmentation3d_ontology.py,10,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.
+tests/test_smoke.py,7,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.
+integrated_pipeline/tests/test_pipeline.py,15,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.
+Capstone_MRI_Project/rag-chatbot/tests/test_api.py,4,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.
+Capstone_MRI_Project/rag-chatbot/tests/test_core.py,19,unittest,not executed for dossier preparation,Source-defined test count only; no pass/fail claim or run summary.

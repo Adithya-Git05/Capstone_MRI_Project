@@ -1,0 +1,30 @@
+seed: 2026
+data_root: 1_data_and_preprocessing/data/BraTS/training_data_additional
+output_root: 2_3d_segmentation/outputs/segmentation3d
+dataset_config: 2_3d_segmentation/legacy/BraTS_Challenge/nnUNet_hyperparameters/dataset.json
+modalities:
+  - t2f
+  - t1n
+  - t1c
+  - t2w
+region_order: [WT, TC, ET, RC]
+region_labels:
+  WT: [1, 2, 3]
+  TC: [1, 3]
+  ET: [3]
+  RC: [4]
+label_scheme: brats_post_treatment_composites_v1
+orientation: RAS
+patch_size: [96, 96, 96]
+batch_size: 1
+epochs: 100
+learning_rate: 0.0001
+validation_fraction: 0.2
+folds: 5
+num_workers: 0
+device: auto
+early_stopping_patience: 30
+weight_decay: 0.00001
+model:
+  segresnet_feature_size: 16
+  swinunetr_feature_size: 48

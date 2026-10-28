@@ -1,0 +1,95 @@
+{
+  "model_name": "ResNet50 classifier",
+  "task": "2D four-class classification",
+  "status": "partially_verified",
+  "user_requested_status_category": "3 — implemented but not successfully trained/evaluated",
+  "implementation_status": "Implemented",
+  "training_status": "Partial two-epoch run; checkpoint exists; no completed evaluation",
+  "identity_and_provenance": {
+    "architecture_source": "4_2d_classification/src/classification/model.py:7-25",
+    "code_version_or_commit": null,
+    "dataset": "BRISC 2025",
+    "dataset_release_or_package": "BRISC 2025 local copy",
+    "dataset_root": "1_data_and_preprocessing/data/BRISC/brisc2025",
+    "training_script": "scripts/train_classification.py",
+    "checkpoint": "4_2d_classification/outputs/classification/20261020_163432_seed2026/best.pt",
+    "checkpoint_bytes": 94340781,
+    "checkpoint_sha256": "800BFBAA39B2216E40A4455B0085CE1CA483CEB7206BA87C42835C00918C5EDB",
+    "checkpoint_format": "Safe-loaded dictionary; model_state (320 entries), model config and run metadata; no optimizer state",
+    "framework_versions": "Exact run versions not confirmed in retrieved metadata summary",
+    "hardware": "Configured CPU; exact hardware identifier unknown"
+  },
+  "input_data": {
+    "modality": "Single 2D BRISC T1-weighted MRI slice",
+    "channel_order": ["grayscale"],
+    "tensor_shape": "[B,1,160,160] (NCHW)",
+    "raw_data_type_and_range": "BRISC JPEG pixels; grayscale conversion from 8-bit values [0,255]",
+    "dtype_and_range": "Float32, grayscale [0,1] then normalized to [-1,1]",
+    "orientation": "Supplied 2D plane",
+    "registration": "None",
+    "resampling_and_spacing": "No voxel spacing; centered padding/resize to 160x160",
+    "normalization": "(x - 0.5)/0.5",
+    "resize_crop_pad_interpolation": "Same BRISC pad preprocessing as custom CNN",
+    "training_augmentations": ["Horizontal flip p=0.5", "Rotation +/-7 degrees", "Brightness/contrast delta 0.08"],
+    "inference_transform": "Deterministic grayscale/pad/normalize",
+    "display_alignment": "Overlay on exact 160x160 model input",
+    "train_inference_difference": "Only stochastic augmentation"
+  },
+  "architecture": {
+    "backbone": "torchvision ResNet50",
+    "weights": null,
+    "pretrained": false,
+    "stem": "network.conv1 Conv2d(1,64,kernel_size=7,stride=2,padding=3,bias=false), then BatchNorm2d(64), inplace ReLU, MaxPool2d(3,stride=2,padding=1)",
+    "stages": "ResNet residual layers layer1 through layer4",
+    "head": "network.fc Linear(2048,4)",
+    "parameter_count": null
+  },
+  "training": {
+    "seed": 2026,
+    "configured_split": "Partial run metadata does not establish exact membership/counts; actual split assignment unavailable",
+    "loss": "Cross-entropy",
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "maximum_epochs": 30,
+    "observed_epochs": 2,
+    "best_epoch": 2,
+    "scheduler": "CosineAnnealingLR(T_max=epochs, eta_min=1e-6)",
+    "early_stopping_patience": 7,
+    "pretrained_weights": false,
+    "observed_log": "4_2d_classification/outputs/classification/20261020_163432_seed2026/run.log",
+    "metadata_caveat": "metadata.json records checkpoint:null and metrics:null despite best.pt being present"
+  },
+  "outputs": {
+    "logits": "[B,4]",
+    "class_index_order": ["glioma", "meningioma", "no_tumor", "pituitary"],
+    "activation": "Raw logits; softmax only for probabilities",
+    "decision_rule": "argmax",
+    "threshold": null
+  },
+  "evaluation": {
+    "status": "No completed validation/test report found",
+    "observed_validation_log": [
+      {"epoch": 1, "train_loss": 0.90735, "validation_loss": 1.25281, "validation_accuracy": 0.7637, "learning_rate": 0.001},
+      {"epoch": 2, "train_loss": 0.60688, "validation_loss": 0.64464, "validation_accuracy": 0.8131, "learning_rate": 0.0009972637}
+    ],
+    "test_metrics": null,
+    "confusion_matrix": null,
+    "roc_auc": null,
+    "pr_auc": null
+  },
+  "gradcam": {
+    "target_module": "model.network.layer4",
+    "observed_activation_shape": "[B,2048,5,5] for 160x160 input",
+    "score": "Selected raw class logit",
+    "tested": false,
+    "caveats": ["Partial checkpoint only", "No Grad-CAM implementation found"]
+  },
+  "evidence": {
+    "source": "4_2d_classification/src/classification/model.py:7-25",
+    "config": "4_2d_classification/outputs/classification/20261020_163432_seed2026/config.yaml",
+    "log": "4_2d_classification/outputs/classification/20261020_163432_seed2026/run.log:1-2",
+    "metadata": "4_2d_classification/outputs/classification/20261020_163432_seed2026/metadata.json:69-70"
+  }
+}

@@ -1,5 +1,0 @@
-Quality Control Report for UCSF-PDGM-0004
-Shapes Match: True
-Spacing Match: True
-Affine Match: True
-Overall QC Status: PASS

@@ -1,0 +1,77 @@
+[
+  {
+    "setting": "PDF extraction",
+    "value": "PyMuPDF fitz; hyphenated linebreak cleanup; whitespace collapse",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/ingestion.py"
+  },
+  {
+    "setting": "Chunking",
+    "value": "sentence-aware; target 400 words; overlap 60 words",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/chunking.py"
+  },
+  {
+    "setting": "Embedding model default",
+    "value": "sentence-transformers/all-MiniLM-L6-v2",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/config.py"
+  },
+  {
+    "setting": "Vector index",
+    "value": "normalized embeddings; compatible persisted index checks corpus hash, ordered chunk IDs, model name; token-set fallback if optional model cannot load",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/vector_retriever.py"
+  },
+  {
+    "setting": "Lexical retrieval",
+    "value": "custom BM25-like scoring; candidate limit max(top_k*3,10)",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/bm25_retriever.py; hybrid_retriever.py"
+  },
+  {
+    "setting": "Fusion",
+    "value": "reciprocal rank fusion; RRF_K=60; combined lexical/vector ranks",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/hybrid_retriever.py; config.py"
+  },
+  {
+    "setting": "Reranker default",
+    "value": "cross-encoder/ms-marco-MiniLM-L-6-v2; token overlap fallback",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/config.py; reranker.py"
+  },
+  {
+    "setting": "Retrieval limits",
+    "value": "TOP_K=5; MAX_CHUNKS_PER_PAPER=2",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/config.py"
+  },
+  {
+    "setting": "Relevance gate",
+    "value": "threshold 0.35; weighted overlap/rerank/domain score with planning/population penalties",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/relevance.py; config.py"
+  },
+  {
+    "setting": "Generation default",
+    "value": "Ollama llama3.2:3b; JSON mode; 90s timeout; passage prompt truncation 1600 chars",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/config.py; llm.py"
+  },
+  {
+    "setting": "Citation check",
+    "value": "model citations normalized to exact retrieved chunk IDs; unresolved references marked unverified",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/llm.py; verification.py"
+  },
+  {
+    "setting": "Claim support check",
+    "value": "token-overlap ratio; support threshold 0.35; methodology/calculation claims forced unverified; not semantic entailment",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/verification.py"
+  },
+  {
+    "setting": "Numerical consistency",
+    "value": "checks named patient-context fields against answer; tolerance max(1e-6, relative 1e-4, integer 0.5 or noninteger max(0.005, 5%)); deterministic consistency only",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/verification.py"
+  },
+  {
+    "setting": "API request schema",
+    "value": "question min_length=3; case_id default DEMO_001; optional extensible PatientContext",
+    "source": "Capstone_MRI_Project/rag-chatbot/src/schemas.py"
+  },
+  {
+    "setting": "Integration transport",
+    "value": "POST /api/rag/query sends ID, question, structured outputs only after explicit UI authorization; raw MRI not sent",
+    "source": "integrated_pipeline/modules/rag_adapter.py; app.py"
+  }
+]

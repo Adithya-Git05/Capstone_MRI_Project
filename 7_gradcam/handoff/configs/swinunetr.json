@@ -1,0 +1,91 @@
+{
+  "model_name": "MONAI SwinUNETR",
+  "task": "3D overlapping-region segmentation",
+  "status": "partially_verified",
+  "user_requested_status_category": "3 — implemented/configured but not trained/evaluated",
+  "implementation_status": "Model construction/config exists; no run/checkpoint found",
+  "training_status": "No successful training/evaluation artifacts found",
+  "identity_and_provenance": {
+    "architecture_source": "2_3d_segmentation/src/segmentation3d/models.py:28-34",
+    "code_version_or_commit": null,
+    "dataset": "Local BraTS-GLI NIfTI subset",
+    "dataset_release_or_package": "Release/version and target ontology are unverified",
+    "dataset_root": "1_data_and_preprocessing/data/BraTS/training_data_additional",
+    "training_script": "scripts/train_segmentation3d.py",
+    "checkpoint": null,
+    "checkpoint_bytes": null,
+    "checkpoint_sha256": null,
+    "framework_versions": "No SwinUNETR run recorded",
+    "hardware": "No SwinUNETR run recorded"
+  },
+  "input_data": {
+    "modality": "Four aligned 3D MRI volumes",
+    "channel_order": ["t2f", "t1n", "t1c", "t2w"],
+    "tensor_shape": "Configured patch [B,4,96,96,96]",
+    "raw_data_type_and_range": "NIfTI source header dtype/min-max not summarized in a SwinUNETR run; loader reads float32 and applies per-channel z-score",
+    "dtype_and_range": "Float32 per-modality nonzero-voxel z-score; background retained as zero",
+    "orientation": "RAS",
+    "registration": "Matching shape/affine validation required",
+    "resampling_and_spacing": "No resampling; local validation says 1mm isotropic",
+    "normalization": "Per-modality z-score over nonzero voxels",
+    "training_crop_and_padding": "Random 96-cube crop; zero-pad if needed",
+    "training_augmentations": ["Independent 3D flips p=0.5"],
+    "inference": "Configured whole-volume sliding window, ROI 96x96x96, sw_batch_size=1, overlap=0.25, default constant blending",
+    "geometry": "RAS output affine; no explicit restoration to original voxel-array orientation"
+  },
+  "architecture": {
+    "model": "MONAI SwinUNETR",
+    "input_channels": 4,
+    "output_channels": 4,
+    "img_size": [96, 96, 96],
+    "feature_size": 48,
+    "use_checkpointing": true,
+    "parameter_count": null,
+    "parameter_count_note": "No SwinUNETR model instance/parameter count was computed",
+    "output_channel_order": ["WT", "TC", "ET", "RC"],
+    "region_mapping": {"WT": [1, 2, 3], "TC": [1, 3], "ET": [3], "RC": [4]},
+    "ontology_status": "PROVISIONAL — ONTOLOGY VERIFICATION REQUIRED; source marks release provenance unverified",
+    "regions_overlap": true
+  },
+  "training": {
+    "status": "Configuration only; proposed completion run",
+    "seed": 2026,
+    "base_config_epochs": 100,
+    "base_batch_size": 1,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "optimizer": "AdamW",
+    "loss": "Equal-weight BCE-with-logits + soft Dice",
+    "validation_fraction": 0.2,
+    "early_stopping_patience": 30,
+    "scheduler": "None evidenced in current engine",
+    "checkpoint_selection": "Mean per-case Dice across four regions",
+    "activation_checkpointing": true
+  },
+  "outputs": {
+    "logits": "[B,4,D,H,W]",
+    "activation": "Independent sigmoid per region",
+    "threshold": 0.5,
+    "region_order": ["WT", "TC", "ET", "RC"],
+    "postprocessing": "Threshold; save uint8 with RAS-oriented affine; no output interpolation"
+  },
+  "evaluation": {
+    "status": "No run, checkpoint, or model-specific metrics",
+    "proposed_metrics": ["Per-region Dice", "Per-region IoU", "HD95 in mm with valid-case counts", "Per-case prediction volumes and affine checks"],
+    "requirement": "Do not reuse SegResNet's one-epoch validation metrics or the unsupported comparison-table values"
+  },
+  "gradcam": {
+    "target_module": null,
+    "activation_shape": null,
+    "scalar_target": "Mean selected region logit over a declared 3D ROI",
+    "tested": false,
+    "next_step": "Instantiate configured SwinUNETR, inspect module tree, attach candidate hook, run gradient-enabled 96-cube forward, and record exact output shape before recommending a module.",
+    "resource_note": "Synthetic forward not attempted because only 1.75 GB RAM was free during audit; available environment was insufficient for a safe gradient-enabled 96-cube test.",
+    "caveats": ["No checkpoint", "No validated module path", "No Grad-CAM implementation"]
+  },
+  "evidence": {
+    "architecture": "2_3d_segmentation/src/segmentation3d/models.py:28-34",
+    "config": "configs/segmentation3d.yaml:1-30",
+    "no_checkpoint_search": "No SwinUNETR checkpoint or run-level metrics found in outputs"
+  }
+}

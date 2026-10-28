@@ -1,0 +1,51 @@
+[
+  {
+    "test_file": "tests/test_classification.py",
+    "defined_test_functions": 3,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  },
+  {
+    "test_file": "tests/test_attention_segmentation.py",
+    "defined_test_functions": 4,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  },
+  {
+    "test_file": "tests/test_segmentation3d_ontology.py",
+    "defined_test_functions": 10,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  },
+  {
+    "test_file": "tests/test_smoke.py",
+    "defined_test_functions": 7,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  },
+  {
+    "test_file": "integrated_pipeline/tests/test_pipeline.py",
+    "defined_test_functions": 15,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  },
+  {
+    "test_file": "Capstone_MRI_Project/rag-chatbot/tests/test_api.py",
+    "defined_test_functions": 4,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  },
+  {
+    "test_file": "Capstone_MRI_Project/rag-chatbot/tests/test_core.py",
+    "defined_test_functions": 19,
+    "test_framework_or_style": "unittest",
+    "execution_status": "not executed for dossier preparation",
+    "scope_note": "Source-defined test count only; no pass/fail claim or run summary."
+  }
+]

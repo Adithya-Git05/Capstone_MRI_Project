@@ -1,0 +1,202 @@
+[
+  {
+    "configuration": "config_v7 base",
+    "component": "G",
+    "definition": "geometric tumor proximity",
+    "weight": 0.35,
+    "formula_or_behavior": "G(x)=exp(-d(x)/sigma_G); 1 inside tumor; sigma_G=5 mm",
+    "normalization_or_missing_data": "Available non-null components are re-normalized by the sum of their weights; unavailable components omitted.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured; not a performance result"
+  },
+  {
+    "configuration": "config_v7 base",
+    "component": "S",
+    "definition": "anatomical structure importance",
+    "weight": 0.15,
+    "formula_or_behavior": "SynthSeg/FreeSurfer label-specific anatomical importance in [0,1]",
+    "normalization_or_missing_data": "Available non-null components are re-normalized by the sum of their weights; unavailable components omitted.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured; not a performance result"
+  },
+  {
+    "configuration": "config_v7 base",
+    "component": "T",
+    "definition": "DTI white-matter tract proximity/overlap",
+    "weight": 0.2,
+    "formula_or_behavior": "T_i=(0.7*exp(-d_i/10mm)+0.3*max(tumor_overlap_fraction,tract_overlap_fraction))*importance_i; voxel map decays from tract with 2mm buffer",
+    "normalization_or_missing_data": "Available non-null components are re-normalized by the sum of their weights; unavailable components omitted.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured; not a performance result"
+  },
+  {
+    "configuration": "config_v7 base",
+    "component": "C",
+    "definition": "functional consequence severity",
+    "weight": 0.2,
+    "formula_or_behavior": "Maximum configured functional consequence severity on mapped structure/tract voxels",
+    "normalization_or_missing_data": "Available non-null components are re-normalized by the sum of their weights; unavailable components omitted.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured; not a performance result"
+  },
+  {
+    "configuration": "config_v7 base",
+    "component": "U",
+    "definition": "boundary/segmentation uncertainty",
+    "weight": 0.1,
+    "formula_or_behavior": "Configured only when a legitimate uncertainty source exists; no ensemble uncertainty in saved case",
+    "normalization_or_missing_data": "Available non-null components are re-normalized by the sum of their weights; unavailable components omitted.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured; not a performance result"
+  },
+  {
+    "configuration": "config_v7 base",
+    "component": "V",
+    "definition": "vascular proximity",
+    "weight": 0.0,
+    "formula_or_behavior": "Vascular proximity only when true vessel imaging is available; no MRA/CTA in saved case",
+    "normalization_or_missing_data": "Available non-null components are re-normalized by the sum of their weights; unavailable components omitted.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured; not a performance result"
+  },
+  {
+    "configuration": "saved V8_VALIDATED example active weights",
+    "component": "G",
+    "definition": "geometric tumor proximity",
+    "weight": 0.38888888888888884,
+    "formula_or_behavior": "G(x)=exp(-d(x)/sigma_G); 1 inside tumor; sigma_G=5 mm",
+    "normalization_or_missing_data": "Source summary says available components were renormalized; active weights sum to one approximately.",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "status": "reported configuration for one example; ID withheld"
+  },
+  {
+    "configuration": "saved V8_VALIDATED example active weights",
+    "component": "S",
+    "definition": "anatomical structure importance",
+    "weight": 0.16666666666666666,
+    "formula_or_behavior": "SynthSeg/FreeSurfer label-specific anatomical importance in [0,1]",
+    "normalization_or_missing_data": "Source summary says available components were renormalized; active weights sum to one approximately.",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "status": "reported configuration for one example; ID withheld"
+  },
+  {
+    "configuration": "saved V8_VALIDATED example active weights",
+    "component": "T",
+    "definition": "DTI white-matter tract proximity/overlap",
+    "weight": 0.22222222222222224,
+    "formula_or_behavior": "T_i=(0.7*exp(-d_i/10mm)+0.3*max(tumor_overlap_fraction,tract_overlap_fraction))*importance_i; voxel map decays from tract with 2mm buffer",
+    "normalization_or_missing_data": "Source summary says available components were renormalized; active weights sum to one approximately.",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "status": "reported configuration for one example; ID withheld"
+  },
+  {
+    "configuration": "saved V8_VALIDATED example active weights",
+    "component": "C",
+    "definition": "functional consequence severity",
+    "weight": 0.22222222222222224,
+    "formula_or_behavior": "Maximum configured functional consequence severity on mapped structure/tract voxels",
+    "normalization_or_missing_data": "Source summary says available components were renormalized; active weights sum to one approximately.",
+    "source_file": "Capstone_MRI_Project/outputs/V7_VALIDATED/patient_summary.json",
+    "status": "reported configuration for one example; ID withheld"
+  },
+  {
+    "configuration": "config_v7 spatial parameters",
+    "component": "sigma_G_mm",
+    "definition": "spatial scale/mixture parameter",
+    "weight": "",
+    "formula_or_behavior": 5.0,
+    "normalization_or_missing_data": "Physical units where suffix is _mm.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured"
+  },
+  {
+    "configuration": "config_v7 spatial parameters",
+    "component": "sigma_T_mm",
+    "definition": "spatial scale/mixture parameter",
+    "weight": "",
+    "formula_or_behavior": 10.0,
+    "normalization_or_missing_data": "Physical units where suffix is _mm.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured"
+  },
+  {
+    "configuration": "config_v7 spatial parameters",
+    "component": "tract_buffer_mm",
+    "definition": "spatial scale/mixture parameter",
+    "weight": "",
+    "formula_or_behavior": 2.0,
+    "normalization_or_missing_data": "Physical units where suffix is _mm.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured"
+  },
+  {
+    "configuration": "config_v7 spatial parameters",
+    "component": "tract_alpha",
+    "definition": "spatial scale/mixture parameter",
+    "weight": "",
+    "formula_or_behavior": 0.7,
+    "normalization_or_missing_data": "Physical units where suffix is _mm.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured"
+  },
+  {
+    "configuration": "config_v7 spatial parameters",
+    "component": "tract_beta",
+    "definition": "spatial scale/mixture parameter",
+    "weight": "",
+    "formula_or_behavior": 0.3,
+    "normalization_or_missing_data": "Physical units where suffix is _mm.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configured"
+  },
+  {
+    "configuration": "config_v7 display categories",
+    "component": "threshold:LOW",
+    "definition": "prototype risk visualization bin",
+    "weight": "",
+    "formula_or_behavior": "0.0 <= R < 0.2",
+    "normalization_or_missing_data": "Report calls these prototype thresholds, not clinically validated.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configuration"
+  },
+  {
+    "configuration": "config_v7 display categories",
+    "component": "threshold:MODERATE",
+    "definition": "prototype risk visualization bin",
+    "weight": "",
+    "formula_or_behavior": "0.2 <= R < 0.4",
+    "normalization_or_missing_data": "Report calls these prototype thresholds, not clinically validated.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configuration"
+  },
+  {
+    "configuration": "config_v7 display categories",
+    "component": "threshold:ELEVATED",
+    "definition": "prototype risk visualization bin",
+    "weight": "",
+    "formula_or_behavior": "0.4 <= R < 0.6",
+    "normalization_or_missing_data": "Report calls these prototype thresholds, not clinically validated.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configuration"
+  },
+  {
+    "configuration": "config_v7 display categories",
+    "component": "threshold:HIGH",
+    "definition": "prototype risk visualization bin",
+    "weight": "",
+    "formula_or_behavior": "0.6 <= R < 0.8",
+    "normalization_or_missing_data": "Report calls these prototype thresholds, not clinically validated.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configuration"
+  },
+  {
+    "configuration": "config_v7 display categories",
+    "component": "threshold:VERY_HIGH",
+    "definition": "prototype risk visualization bin",
+    "weight": "",
+    "formula_or_behavior": "0.8 <= R < 1.0",
+    "normalization_or_missing_data": "Report calls these prototype thresholds, not clinically validated.",
+    "source_file": "Capstone_MRI_Project/config_v7.json",
+    "status": "configuration"
+  }
+]

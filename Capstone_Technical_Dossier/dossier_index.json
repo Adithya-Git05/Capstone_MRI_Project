@@ -1,0 +1,41 @@
+{
+  "project_title": "AI-Driven Framework for Brain Tumor Analysis from MRI",
+  "generated_from_workspace": "New",
+  "evidence_policy": "No invented results; direct, derived, configured, supplied and unavailable values distinguished.",
+  "figures": [
+    "FIGURES/architecture/system_architecture.mmd",
+    "FIGURES/pipeline_workflow/pipeline_workflow.mmd",
+    "FIGURES/classification/confusion_matrix_test.png",
+    "FIGURES/classification/roc_test_uncalibrated.png",
+    "FIGURES/classification/precision_recall_test_uncalibrated.png",
+    "FIGURES/classification/reliability_test_uncalibrated.png",
+    "FIGURES/classification/confusion_matrix_test_temperature_scaled.png",
+    "FIGURES/classification/roc_test_temperature_scaled.png",
+    "FIGURES/classification/precision_recall_test_temperature_scaled.png",
+    "FIGURES/segmentation/representative_2d_test_overlays.png",
+    "FIGURES/segmentation/2d_test_metric_distributions.png",
+    "FIGURES/segmentation/3d_supplied_dice_comparison.png",
+    "FIGURES/segmentation/3d_derived_iou_comparison.png",
+    "FIGURES/segmentation/3d_supplied_hd95_comparison.png",
+    "FIGURES/risk_mapping/risk_map_comparison_anonymized.png",
+    "FIGURES/risk_mapping/component_maps_anonymized.png",
+    "FIGURES/corridor_optimization/candidate_corridor_overlay.png",
+    "FIGURES/corridor_optimization/pareto_tradeoff_frontier_anonymized.png"
+  ],
+  "tables": [
+    "classification_metrics.csv",
+    "confusion_matrix.csv",
+    "segmentation_metrics.csv",
+    "spatial_case_results.csv",
+    "corridor_results.csv",
+    "rag_evaluation.csv"
+  ],
+  "known_gaps": [
+    "Dataset provenance and patient-level independence are not verified.",
+    "Current 3D run is one-epoch grouped validation; no official test.",
+    "Supplied 3D comparison conflicts with current run and has no cohort provenance.",
+    "No SwinUNETR run, ResNet50/EfficientNetB0 results, Grad-CAM, screenshots, or end-to-end test summary.",
+    "RAG evaluation annotations and scores are unavailable.",
+    "No clinical validation or calibrated injury probability."
+  ]
+}
