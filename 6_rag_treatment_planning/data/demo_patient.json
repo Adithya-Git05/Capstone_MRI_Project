@@ -1,18 +1,7 @@
 {
   "case_id": "DEMO_001",
+  "patient_label": "Patient 001",
   "data_type": "SYNTHETIC_DEMO",
-  "tumor_type": "glioma",
-  "tumor_volume_ml": 42.3,
-  "enhancing_tumor_volume_ml": 18.7,
-  "classification": "demo_glioma",
-  "classification_probability": 0.87,
-  "risk_score": 0.31,
-  "risk_uncertainty": 0.12,
-  "missing_modalities": ["DTI", "fMRI", "vascular imaging"],
-  "critical_structures": ["demo_structure_1"],
-  "candidate_corridors": [
-    {"id": "A", "risk": 0.18, "coverage": 0.91, "length_mm": 44},
-    {"id": "B", "risk": 0.24, "coverage": 0.96, "length_mm": 37},
-    {"id": "C", "risk": 0.31, "coverage": 0.98, "length_mm": 29}
-  ]
+  "patient_history": "Fictional demonstration history: intermittent headaches. No real medical history or verified clinical findings are supplied.",
+  "patient_history_provenance": "Synthetic history for demonstration only. Imaging findings and model outputs must come from the active MRI analysis."
 }

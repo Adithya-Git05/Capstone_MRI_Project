@@ -27,6 +27,7 @@ integrated = [
   "scipy>=1.10",
   "streamlit>=1.35",
   "requests>=2.31",
+  "plotly>=5.18",
 ]
 
 [tool.setuptools.packages.find]

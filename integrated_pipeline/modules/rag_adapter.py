@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -66,12 +67,13 @@ def rag_readiness(api_url: str = "http://127.0.0.1:8000") -> dict[str, Any]:
         rag_settings = dotenv_values(RAG_PROJECT_ROOT / ".env")
     except ImportError:
         rag_settings = {}
-    ollama_url = os.environ.get(
-        "OLLAMA_BASE_URL",
-        str(rag_settings.get("OLLAMA_BASE_URL") or "http://localhost:11434"),
-    ).rstrip("/")
-    ollama_model = os.environ.get(
-        "OLLAMA_MODEL", str(rag_settings.get("OLLAMA_MODEL") or "llama3.2:3b")
+    gemini_api_key = os.environ.get(
+        "GEMINI_API_KEY", str(rag_settings.get("GEMINI_API_KEY") or "")
+    )
+    if gemini_api_key.strip().lower() in {"replace-with-your-key", "your-api-key"}:
+        gemini_api_key = ""
+    gemini_model = os.environ.get(
+        "GEMINI_MODEL", str(rag_settings.get("GEMINI_MODEL") or "gemini-3.5-flash")
     )
     try:
         import requests
@@ -128,73 +130,34 @@ def rag_readiness(api_url: str = "http://127.0.0.1:8000") -> dict[str, Any]:
                 "the instructions in 6_rag_treatment_planning\\README.md."
             )
 
-    ollama_status = "unavailable"
-    available_ollama_models: list[str] = []
-    if requests is not None:
-        try:
-            ollama_response = requests.get(f"{ollama_url}/api/tags", timeout=2)
-            ollama_response.raise_for_status()
-            ollama_payload = ollama_response.json()
-            available_ollama_models = [
-                str(item.get("name", ""))
-                for item in ollama_payload.get("models", [])
-                if isinstance(item, dict)
-            ]
-            ollama_status = "available"
-        except (requests.RequestException, ValueError, AttributeError):
-            ollama_payload = None
-    else:
-        ollama_payload = None
-    if ollama_status == "unavailable":
+    gemini_status = "configured" if gemini_api_key else "missing API key"
+    if not gemini_api_key:
         missing.append(
-            f"Ollama LLM provider is unreachable at {ollama_url}; start Ollama and "
-            f"verify the configured model '{ollama_model}'."
+            "Gemini API key is not configured; set GEMINI_API_KEY in "
+            "6_rag_treatment_planning\\.env."
         )
-        setup.extend(
-            [
-                "Install/start Ollama locally (`ollama serve`).",
-                f"Download the configured model with `ollama pull {ollama_model}`.",
-            ]
+        setup.append(
+            "Copy .env.example to .env in 6_rag_treatment_planning and set "
+            "GEMINI_API_KEY without committing the key."
         )
-    elif not any(
-        name == ollama_model or name.startswith(f"{ollama_model}:")
-        for name in available_ollama_models
-    ):
-        missing.append(
-            f"Ollama is reachable, but configured model '{ollama_model}' is not listed."
-        )
-        setup.append(f"Download it with: ollama pull {ollama_model}")
-        ollama_status = "model missing"
-
     if not RAG_PROJECT_ROOT.joinpath(".env").is_file():
         setup.append(
-            "Optional RAG settings are loaded by the RAG API from "
-            "6_rag_treatment_planning\\.env. Copy .env.example to .env to configure "
-            "OLLAMA_BASE_URL, OLLAMA_MODEL, and retrieval models; no API key is required "
-            "for the documented local Ollama setup."
-        )
-    ollama_url_split = urlsplit(ollama_url)
-    if ollama_url_split.hostname not in {"localhost", "127.0.0.1", "::1"}:
-        setup.append(
-            "OLLAMA_BASE_URL is remote. Confirm it is an authorized endpoint before "
-            "sending literature query text; raw MRI images are never sent."
+            "RAG settings are loaded by the API from 6_rag_treatment_planning\\.env. "
+            "Copy .env.example to .env and configure GEMINI_API_KEY and retrieval models."
         )
     return {
         "ready": (
             service_status == "available"
             and bool(health and health.get("knowledge_base_exists"))
-            and ollama_status == "available"
+            and gemini_status == "configured"
             and not missing_modules
         ),
         "api_status": service_status,
-        "ollama_status": ollama_status,
-        "available_ollama_models": available_ollama_models,
-        "required_ollama_model": ollama_model,
+        "gemini_status": gemini_status,
+        "gemini_model": gemini_model,
         "chunks_path": str(RAG_CHUNKS_PATH),
         "chunks_available": RAG_CHUNKS_PATH.is_file(),
         "vector_index_manifest_available": RAG_VECTOR_MANIFEST.is_file(),
-        "ollama_url": ollama_url,
-        "ollama_model": ollama_model,
         "missing": missing,
         "setup": list(dict.fromkeys(setup)),
     }
@@ -288,8 +251,31 @@ def query_analysis_context(
     return validate_rag_evidence(result)
 
 
-def build_patient_context(case_id: str, result: dict[str, Any]) -> dict[str, Any]:
+def build_patient_context(
+    case_id: str,
+    result: dict[str, Any],
+    volume_result: dict[str, Any] | None = None,
+    modality_inputs: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Build RAG context only from measured or explicitly labeled model outputs."""
+    if volume_result:
+        result = {
+            **result,
+            "region_masks": volume_result.get("region_masks", result.get("region_masks", {})),
+            "risk_mapping": volume_result.get("risk_mapping", result.get("risk_mapping")),
+            "segmentation3d_metadata": volume_result.get(
+                "segmentation3d_metadata", result.get("segmentation3d_metadata", {})
+            ),
+            "model_3d": volume_result.get("model_3d", result.get("model_3d")),
+            "modalities": volume_result.get("modalities", result.get("modalities", [])),
+            "output_spacing_mm": volume_result.get(
+                "output_spacing_mm", result.get("output_spacing_mm", [])
+            ),
+            "stages": {
+                **result.get("stages", {}),
+                **volume_result.get("stages", {}),
+            },
+        }
     masks = result.get("region_masks", {})
     whole_tumor = masks.get("WT")
     voxel_spacing = result.get("output_spacing_mm", [])
@@ -303,10 +289,21 @@ def build_patient_context(case_id: str, result: dict[str, Any]) -> dict[str, Any
     synthseg_provided = risk_stage.get("status") in {"completed", "failed"}
     context: dict[str, Any] = {
         "case_id": case_id,
-        "data_type": "RESEARCH_MODEL_OUTPUTS",
+        "patient_label": "Patient 001",
+        "data_type": "MODEL_INFERENCE_WITH_SYNTHETIC_HISTORY",
+        "patient_history": (
+            "Fictional demonstration history: intermittent headaches. No real medical "
+            "history or verified clinical findings are supplied."
+        ),
+        "patient_history_provenance": (
+            "Synthetic history for demonstration only. Imaging findings and model "
+            "outputs come only from the active MRI analysis."
+        ),
         "provenance": {
             "source": "current integrated pipeline run",
             "raw_mri_sent": False,
+            "model_findings_source": "active MRI inference results only",
+            "synthetic_history_is_not_an_inference": True,
             "tumor_volume": (
                 "estimated from a predicted WT mask; not ground truth"
                 if whole_tumor is not None
@@ -315,9 +312,10 @@ def build_patient_context(case_id: str, result: dict[str, Any]) -> dict[str, Any
         },
         "tumor_volume_ml": tumor_volume_ml,
         "available_modalities": (
-            list(result.get("modalities", []))
-            + (["SynthSeg anatomical labels"] if synthseg_provided else [])
-        ),
+            list(result.get("modalities", [])) or list(modality_inputs or {})
+        )
+        + (["SynthSeg anatomical labels"] if synthseg_provided else []),
+        "modality_inputs": modality_inputs or {},
         "missing_modalities": ["DTI FA", "white-matter tract masks"],
         "model_info": {
             "segmentation_3d": result.get("model_3d"),
@@ -338,6 +336,15 @@ def build_patient_context(case_id: str, result: dict[str, Any]) -> dict[str, Any
             "shape": input_info.get("shape"),
             "slice_index": input_info.get("slice_index"),
         }
+    segmentation3d = result.get("segmentation3d_metadata")
+    if segmentation3d:
+        context["segmentation_3d"] = {
+            "model": result.get("model_3d"),
+            "region_order": segmentation3d.get("region_order"),
+            "mask_voxel_count": segmentation3d.get("mask_voxel_count"),
+            "prediction_threshold": segmentation3d.get("prediction_threshold"),
+            "clinical_performance": "unvalidated",
+        }
     segmentation_2d = result.get("segmentation")
     if segmentation_2d:
         context["segmentation_2d"] = {
@@ -355,6 +362,11 @@ def build_patient_context(case_id: str, result: dict[str, Any]) -> dict[str, Any
     classification = result.get("classification")
     if classification:
         context["classification"] = classification.get("predicted_class")
+        context["classification_results"] = {
+            "status": classification.get("status"),
+            "scores": classification.get("scores"),
+            "probabilities": classification.get("probabilities"),
+        }
         context["classification_probability"] = classification.get("probabilities", {}).get(
             classification.get("predicted_class")
         )
@@ -384,4 +396,32 @@ def build_patient_context(case_id: str, result: dict[str, Any]) -> dict[str, Any
     else:
         if not synthseg_provided:
             context["missing_modalities"].append("registered SynthSeg anatomical labels")
+    context["analysis_results_text"] = _analysis_results_text(context)
     return context
+
+
+def _analysis_results_text(context: dict[str, Any]) -> str:
+    """Render only supplied case context as readable text for the language model."""
+    sections = (
+        ("PATIENT HISTORY (synthetic demonstration data)", ("patient_label", "patient_history")),
+        ("MRI INPUTS", ("available_modalities", "modality_inputs", "input_summary")),
+        ("2D SEGMENTATION INFERENCE", ("segmentation_2d",)),
+        ("3D SEGMENTATION INFERENCE", ("segmentation_3d",)),
+        (
+            "CLASSIFICATION INFERENCE",
+            ("classification", "classification_results", "classification_provenance"),
+        ),
+        ("SURGICAL RISK MAPPING INFERENCE", ("risk_score", "risk_provenance", "critical_structures")),
+        ("SURGICAL CORRIDOR INFERENCE", ("candidate_corridors",)),
+        ("MISSING INPUTS / LIMITATIONS", ("missing_modalities", "quality_indicators")),
+    )
+    lines: list[str] = []
+    for heading, keys in sections:
+        values = [(key, context[key]) for key in keys if key in context and context[key] not in (None, {}, [], "")]
+        if not values:
+            continue
+        lines.append(f"{heading}:")
+        for key, value in values:
+            serialized = json.dumps(value, ensure_ascii=True, sort_keys=True)
+            lines.append(f"- {key.replace('_', ' ')}: {serialized}")
+    return "\n".join(lines)

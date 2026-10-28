@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import gzip
 import importlib
 import json
 import os
@@ -91,6 +92,21 @@ def _reorient_to_ras(source: nib.spatialimages.SpatialImage) -> tuple[np.ndarray
     return np.asarray(array), np.asarray(affine)
 
 
+def _reorient_from_ras(array: np.ndarray, affine: np.ndarray) -> np.ndarray:
+    source_orientation = nib.orientations.io_orientation(affine)
+    ras_orientation = nib.orientations.axcodes2ornt(("R", "A", "S"))
+    transform = nib.orientations.ornt_transform(ras_orientation, source_orientation)
+    return np.asarray(nib.orientations.apply_orientation(array, transform))
+
+
+def _nifti_gzip_bytes(
+    array: np.ndarray, affine: np.ndarray, header: nib.nifti1.Nifti1Header, dtype: np.dtype
+) -> bytes:
+    image = nib.Nifti1Image(np.asarray(array, dtype=dtype), affine, header.copy())
+    image.header.set_data_dtype(dtype)
+    return gzip.compress(image.to_bytes())
+
+
 def run_v8_risk_mapping(
     mri_path: Path,
     tumor_mask_path: Path,
@@ -173,15 +189,30 @@ def run_v8_risk_mapping(
 
         config = json.loads(template_path.read_text(encoding="utf-8"))
         config["patient_id"] = patient_id
-        config["output_root"] = str((output_dir / "v8_outputs").resolve())
-        config.setdefault("paths", {}).update(
+        paths = config.setdefault("paths", {})
+        paths.update(
             {
                 "mri_image": str(risk_mri.resolve()),
                 "tumor_mask": str(risk_tumor.resolve()),
                 "synthseg_labels": str(risk_labels.resolve()),
-                "dti_fa": str((work / "dti_unavailable.nii.gz").resolve()),
-                "tract_masks": str((work / "tracts_unavailable").resolve()),
+                "dti_fa": None,
+                "tract_masks": None,
                 "output_dir_v6": str((output_dir / "v8_outputs" / "V6_baseline").resolve()),
+                "output_dir_v7_validated": str(
+                    (output_dir / "v8_outputs" / "V7_VALIDATED").resolve()
+                ),
+                "output_dir_v8_corridors": str(
+                    (output_dir / "v8_outputs" / "V8_CORRIDORS").resolve()
+                ),
+                "output_dir_v8_ablation": str(
+                    (output_dir / "v8_outputs" / "V8_ablation").resolve()
+                ),
+                "output_dir_v8_comparison": str(
+                    (output_dir / "v8_outputs" / "V8_comparison").resolve()
+                ),
+                "output_dir_v8_qc": str(
+                    (output_dir / "v8_outputs" / "V8_qc").resolve()
+                ),
             }
         )
         config_path = work / "v8_config.json"
@@ -199,12 +230,18 @@ def run_v8_risk_mapping(
             sys.path.remove(root_path)
             sys.path.remove(pipeline_path)
 
-        validated_dir = Path(summary["output_paths"]["validated"])
-        corridors_dir = Path(summary["output_paths"]["corridors"])
+        validated_dir = Path(paths["output_dir_v7_validated"])
+        corridors_dir = Path(paths["output_dir_v8_corridors"])
         risk_image = nib.load(str(validated_dir / "enhanced_risk_map.nii.gz"))
         risk_map = np.asarray(risk_image.get_fdata(dtype=np.float32))
-        if risk_map.shape != tumor.shape or not np.allclose(risk_image.affine, tumor.affine, atol=1e-4):
-            raise RuntimeError("V8 risk-map output did not preserve the input spatial geometry.")
+        expected_ras_shape = tumor_ras.shape
+        if (
+            risk_map.shape != expected_ras_shape
+            or not np.allclose(risk_image.affine, tumor_affine, atol=1e-4)
+        ):
+            raise RuntimeError(
+                "V8 risk-map output does not match the reoriented input geometry."
+            )
 
         corridor_file = corridors_dir / "corridor_results.csv"
         if corridor_file.is_file():
@@ -218,28 +255,73 @@ def run_v8_risk_mapping(
             if corridor_mask_path.is_file()
             else None
         )
+        if corridor_mask is not None and corridor_mask.shape != expected_ras_shape:
+            raise RuntimeError("V8 corridor mask does not match the input volume shape.")
         component_maps = {}
         for component in ("G", "S", "T", "C"):
             component_path = validated_dir / f"{component}_map.nii.gz"
             if component_path.is_file():
-                component_maps[component] = np.asarray(
-                    nib.load(str(component_path)).get_fdata(dtype=np.float32)
+                component_image = nib.load(str(component_path))
+                component_data = np.asarray(
+                    component_image.get_fdata(dtype=np.float32)
                 )
+                if (
+                    component_data.shape != expected_ras_shape
+                    or not np.allclose(component_image.affine, tumor_affine, atol=1e-4)
+                ):
+                    raise RuntimeError(
+                        f"V8 {component} component map does not match input geometry."
+                    )
+                component_maps[component] = component_data
+        risk_map_original = _reorient_from_ras(risk_map, tumor.affine)
+        if corridor_mask is not None:
+            corridor_mask = _reorient_from_ras(corridor_mask, tumor.affine)
+        component_maps = {
+            name: _reorient_from_ras(component, tumor.affine)
+            for name, component in component_maps.items()
+        }
+        brain_mask = _reorient_from_ras((labels_ras > 0) | (tumor_ras > 0), tumor.affine)
+        interactive_report_path = corridors_dir / "risk_3d_viewer.html"
+        risk_nifti_bytes = _nifti_gzip_bytes(
+            risk_map_original, tumor.affine, tumor.header, np.dtype(np.float32)
+        )
+        corridor_nifti_bytes = (
+            _nifti_gzip_bytes(
+                corridor_mask.astype(np.uint8),
+                tumor.affine,
+                tumor.header,
+                np.dtype(np.uint8),
+            )
+            if corridor_mask is not None
+            else None
+        )
         return {
             "status": "completed",
-            "risk_map": risk_map,
+            "risk_map": risk_map_original,
             "component_maps": component_maps,
-            "brain_mask": (labels_ras > 0) | (tumor.get_fdata() > 0),
+            "brain_mask": brain_mask,
             "corridor_mask": corridor_mask,
             "corridors": corridors,
             "structures": summary["structure_records"],
             "evidence_status": summary["evidence_status"],
             "active_weights": summary["active_weights"],
             "qc": summary["qc"],
-            "output_affine": risk_image.affine.copy(),
+            "output_affine": np.asarray(tumor.affine).copy(),
+            "output_paths": {
+                "validated": str(validated_dir),
+                "corridors": str(corridors_dir),
+            },
+            "risk_map_nifti": risk_nifti_bytes,
+            "corridor_mask_nifti": corridor_nifti_bytes,
+            "interactive_report_html": (
+                interactive_report_path.read_bytes()
+                if interactive_report_path.is_file()
+                else None
+            ),
             "note": (
                 "V8 research-prototype composite score; not a clinical probability. "
-                "DTI/tract inputs were not supplied and their components are unavailable."
+                "DTI/tract inputs were not supplied; those components are unavailable "
+                "and omitted from the active weights."
             ),
         }
 

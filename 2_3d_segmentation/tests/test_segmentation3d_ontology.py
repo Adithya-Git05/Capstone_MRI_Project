@@ -24,8 +24,10 @@ from src.segmentation3d.monai_engine import (
     _save_prediction_nifti,
     _summarize,
     _validate_checkpoint_ontology,
-    predict_model_card_case,
-    verify_model_card_checkpoint,
+    predict_registered_3d_case,
+    predict_segresnet_case,
+    verify_segresnet_checkpoint,
+    verify_segresnet_checkpoint,
 )
 from src.segmentation3d.nnunet_adapter import (
     DATASET_NAME,
@@ -134,6 +136,99 @@ class Segmentation3DOntologyTests(unittest.TestCase):
         with torch.inference_mode():
             output = model(torch.zeros(1, 4, 32, 32, 32))
         self.assertEqual(tuple(output.shape), (1, 4, 32, 32, 32))
+
+    def test_segresnet_inference_preserves_tc_wt_et_order_and_native_geometry(self) -> None:
+        from src.segmentation3d.models import build_monai_model
+
+        model_spec = dict(load_model_registry()["segmentation_3d"])
+        model_spec["inference"] = {
+            **model_spec["inference"],
+            "roi_size": [32, 32, 32],
+            "overlap": 0.25,
+        }
+        case_id = "segresnet-smoke"
+        affine = np.diag([1.0, 1.0, 1.0, 1.0])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            case_dir = root / case_id
+            case_dir.mkdir()
+            checkpoint = root / "model.pt"
+            model = build_monai_model(
+                "segresnet",
+                patch_size=(32, 32, 32),
+                in_channels=4,
+                out_channels=3,
+                feature_size=16,
+            )
+            torch.save(model.state_dict(), checkpoint)
+            del model
+
+            generator = np.random.default_rng(42)
+            for modality in ("t1c", "t1n", "t2w", "t2f"):
+                image = generator.normal(size=(32, 32, 32)).astype(np.float32)
+                nib.save(
+                    nib.Nifti1Image(image, affine),
+                    case_dir / f"{case_id}-{modality}.nii.gz",
+                )
+
+            compatibility = verify_segresnet_checkpoint(checkpoint, model_spec)
+            self.assertEqual(compatibility["status"], "compatible")
+            self.assertEqual(compatibility["state_dict_tensor_count"], 83)
+
+            output_dir = root / "prediction"
+            predict_segresnet_case(
+                checkpoint, case_dir, output_dir, model_spec, device="cpu"
+            )
+            metadata = json.loads(
+                (output_dir / "prediction_metadata.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(metadata["region_order"], ["TC", "WT", "ET"])
+            self.assertIn("RC", metadata["unavailable_regions"])
+            self.assertEqual(metadata["device"], "cpu")
+            self.assertEqual(metadata["output_shape"], [32, 32, 32])
+            self.assertTrue(
+                (output_dir / "segmentation_visualization.png")
+                .read_bytes()
+                .startswith(b"\x89PNG\r\n\x1a\n")
+            )
+            for region in ("TC", "WT", "ET"):
+                output = nib.load(str(output_dir / f"{case_id}_{region}.nii.gz"))
+                self.assertEqual(output.shape, (32, 32, 32))
+                np.testing.assert_allclose(output.affine, affine, atol=1e-4)
+                self.assertTrue(
+                    np.isin(output.get_fdata(dtype=np.float32), (0, 1)).all()
+                )
+                summary = metadata["probability_summary"][region]
+                self.assertGreaterEqual(summary["minimum"], 0.0)
+                self.assertLessEqual(summary["maximum"], 1.0)
+
+    def test_segresnet_rejects_non_isotropic_input_without_resampling(self) -> None:
+        model_spec = dict(load_model_registry()["segmentation_3d"])
+        case_id = "wrong-spacing"
+        affine = np.diag([2.0, 2.0, 2.0, 1.0])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            case_dir = root / case_id
+            case_dir.mkdir()
+            checkpoint = root / "placeholder.pt"
+            checkpoint.write_bytes(b"not loaded before spacing validation")
+            for index, modality in enumerate(("t1c", "t1n", "t2w", "t2f")):
+                data = np.arange(8**3, dtype=np.float32).reshape(8, 8, 8) + index
+                nib.save(
+                    nib.Nifti1Image(data, affine),
+                    case_dir / f"{case_id}-{modality}.nii.gz",
+                )
+
+            with self.assertRaisesRegex(ValueError, "requires 1 mm isotropic input"):
+                predict_segresnet_case(
+                    checkpoint,
+                    case_dir,
+                    root / "prediction",
+                    model_spec,
+                    device="cpu",
+                )
 
     def test_region_metrics_follow_canonical_channels_and_empty_behavior(self) -> None:
         target = np.zeros((4, 2, 2, 2), dtype=bool)
@@ -260,7 +355,7 @@ class Segmentation3DOntologyTests(unittest.TestCase):
     os.environ.get("MRI_3D_SMOKE_CASE_DIR"),
     "Set MRI_3D_SMOKE_CASE_DIR to a complete four-modality NIfTI study.",
 )
-class ModelCardInferenceSmokeTests(unittest.TestCase):
+class SegResNetInferenceSmokeTests(unittest.TestCase):
     def test_real_checkpoint_inference_preserves_masks_and_visualization(self) -> None:
         case_dir = Path(os.environ["MRI_3D_SMOKE_CASE_DIR"]).expanduser().resolve()
         case_id = os.environ.get("MRI_3D_SMOKE_CASE_ID", case_dir.name)
@@ -278,25 +373,27 @@ class ModelCardInferenceSmokeTests(unittest.TestCase):
                 (case_dir / f"{case_id}-{modality}.nii.gz").is_file(),
                 f"Missing required {modality} NIfTI input.",
             )
-        compatibility = verify_model_card_checkpoint(checkpoint, model_spec)
+        compatibility = verify_segresnet_checkpoint(checkpoint, model_spec)
         self.assertEqual(compatibility["status"], "compatible")
         source = load_input_volume(case, modalities=modalities, orientation=None)
 
         with tempfile.TemporaryDirectory() as temporary:
             output_dir = Path(temporary) / "prediction"
-            predict_model_card_case(checkpoint, case_dir, output_dir, model_spec)
+            predict_registered_3d_case(
+                checkpoint, case_dir, output_dir, model_spec
+            )
             metadata = json.loads(
                 (output_dir / "prediction_metadata.json").read_text(encoding="utf-8")
             )
 
-            self.assertEqual(metadata["modalities"], ["t1n", "t1c", "t2w", "t2f"])
-            self.assertEqual(metadata["region_order"], ["ET", "TC", "WT"])
+            self.assertEqual(metadata["modalities"], ["t1c", "t1n", "t2w", "t2f"])
+            self.assertEqual(metadata["region_order"], ["TC", "WT", "ET"])
             self.assertIn("RC", metadata["unavailable_regions"])
             visualization = output_dir / metadata["visualization"]
             self.assertTrue(visualization.is_file())
             self.assertTrue(visualization.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
 
-            for region in ("ET", "TC", "WT"):
+            for region in ("TC", "WT", "ET"):
                 image = nib.load(str(output_dir / f"{case_id}_{region}.nii.gz"))
                 self.assertEqual(tuple(image.shape), tuple(source["image"].shape[1:]))
                 np.testing.assert_allclose(image.affine, source["affine"], atol=1e-4)

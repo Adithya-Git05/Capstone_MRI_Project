@@ -12,8 +12,13 @@ VECTOR_DIR = KB_DIR / "vector_db"
 CHUNKS_PATH = KB_DIR / "chunks.json"
 PATIENT_PATH = DATA_DIR / "demo_patient.json"
 METADATA_PATH = DATA_DIR / "literature_metadata.csv"
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+_gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY = (
+    ""
+    if _gemini_api_key.lower() in {"replace-with-your-key", "your-api-key"}
+    else _gemini_api_key
+)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 TOP_K = int(os.getenv("TOP_K", "5"))

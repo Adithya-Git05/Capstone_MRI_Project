@@ -25,7 +25,7 @@ def index():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "knowledge_base_exists": CHUNKS_PATH.exists(), "ollama_checked_on_query": True}
+    return {"status": "ok", "knowledge_base_exists": CHUNKS_PATH.exists(), "gemini_checked_on_query": True}
 
 @app.get("/api/cases/{case_id}")
 def get_case(case_id: str):

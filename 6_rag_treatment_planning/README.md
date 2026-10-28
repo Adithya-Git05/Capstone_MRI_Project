@@ -1,12 +1,12 @@
 # Brain Tumor Surgical Planning RAG Prototype
 
-A local undergraduate research prototype that retrieves supplied literature, verifies source metadata, loads an explicitly synthetic patient case, and sends grounded context to Ollama. It is not clinically validated and does not make autonomous medical decisions.
+A local undergraduate research prototype that retrieves supplied literature, verifies source metadata, loads an explicitly synthetic patient case, and sends grounded context to Gemini. It is not clinically validated and does not make autonomous medical decisions.
 
 ## Architecture
 
-PDFs are extracted with PyMuPDF and split into sentence-aware overlapping chunks. Hybrid retrieval combines BM25 and vector retrieval with reciprocal rank fusion. `sentence-transformers` and its cross-encoder are used when their models are available; deterministic lexical fallbacks keep the demo runnable offline. The builder writes a persisted embedding artifact under `knowledge_base/vector_db/`, including a corpus hash, ordered chunk IDs, and embedding model name. The application reuses it only when those values are compatible; otherwise it regenerates the artifact. Evidence is source-checked before Ollama receives it.
+PDFs are extracted with PyMuPDF and split into sentence-aware overlapping chunks. Hybrid retrieval combines BM25 and vector retrieval with reciprocal rank fusion. `sentence-transformers` and its cross-encoder are used when their models are available; deterministic lexical fallbacks keep retrieval runnable offline. The builder writes a persisted embedding artifact under `knowledge_base/vector_db/`, including a corpus hash, ordered chunk IDs, and embedding model name. The application reuses it only when those values are compatible; otherwise it regenerates the artifact. Evidence is source-checked before Gemini receives it.
 
-After reranking, evidence passes a configurable relevance gate (`RELEVANCE_THRESHOLD`, default `0.35`). The gate combines query-term coverage, reranker score, glioma/neurosurgical domain signal, and generic population/topic mismatch penalties. Broad case questions are expanded with only the known case topics; they do not infer missing age, anatomy, or imaging. Evidence is then limited by `MAX_CHUNKS_PER_PAPER`, so fewer than `TOP_K` passages are returned when the remaining candidates are irrelevant. The API exposes `retrieval_diagnostics` with candidate counts, scores, and filtering reasons. If no passage passes, Ollama is not called and the response states that evidence is insufficient.
+After reranking, evidence passes a configurable relevance gate (`RELEVANCE_THRESHOLD`, default `0.35`). The gate combines query-term coverage, reranker score, glioma/neurosurgical domain signal, and generic population/topic mismatch penalties. Broad case questions are expanded with only the known case topics; they do not infer missing age, anatomy, or imaging. Evidence is then limited by `MAX_CHUNKS_PER_PAPER`, so fewer than `TOP_K` passages are returned when the remaining candidates are irrelevant. The API exposes `retrieval_diagnostics` with candidate counts, scores, and filtering reasons. If no passage passes, Gemini is not called and the response states that evidence is insufficient.
 
 ## Setup (PowerShell)
 
@@ -18,12 +18,7 @@ python -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Install Ollama separately, start it, and pull a local model:
-
-```powershell
-ollama serve
-ollama pull llama3.2:3b
-```
+Set `GEMINI_API_KEY` in `6_rag_treatment_planning/.env`. The provided `.env.example` selects `gemini-3.5-flash`; update `GEMINI_MODEL` there to use another supported Gemini model. The API key is read from the environment and is never stored in source code.
 
 ## Build and run
 
@@ -36,7 +31,7 @@ access papers and build its own index before literature retrieval is available.
 .\.venv\Scripts\python.exe -m uvicorn api.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000`. The UI labels `DEMO_001` as synthetic data and shows warnings when Ollama is unavailable. API endpoints: `GET /api/health`, `GET /api/cases/{case_id}`, `POST /api/rag/query`, and local-development `POST /api/knowledge-base/rebuild`.
+Open `http://127.0.0.1:8000`. The UI labels `Patient 001` as synthetic data. API endpoints: `GET /api/health`, `GET /api/cases/{case_id}`, `POST /api/rag/query`, and local-development `POST /api/knowledge-base/rebuild`.
 
 ## Literature
 
@@ -64,8 +59,8 @@ The audit is stored in `data/corpus_audit.json`. Evidence-type labels are query-
 
 ## Patient interface
 
-`data/demo_patient.json` is the replaceable adapter boundary. `src/patient_context.py` validates the case ID through the extensible `PatientContext` schema, which accepts provenance, model/version, quality, modality, segmentation, classification, risk, anatomy, and corridor fields without requiring real patient values. The RAG layer must preserve supplied model values and must not recalculate volume, risk, anatomy, or corridor safety. Each response includes automated claim-support and patient-number consistency reports; these are not clinical validation.
+`data/demo_patient.json` supplies only Patient 001's clearly labeled fictional history; it does not contain example tumor measurements, classification, risk, or corridor results. In the integrated workflow, those findings are supplied only from the active MRI inference run and omitted when a model stage has not produced them. Raw images and voxel arrays are not sent to Gemini. `src/patient_context.py` validates the case ID through the extensible `PatientContext` schema, which accepts provenance, model/version, quality, modality, segmentation, classification, risk, anatomy, and corridor fields. The RAG layer must preserve supplied model values and must not recalculate volume, risk, anatomy, or corridor safety. Each response includes automated claim-support and patient-number consistency reports; these are not clinical validation.
 
 ## Limitations
 
-The patient case is synthetic, while the current literature corpus contains 40 downloaded papers. Retrieval quality depends on downloaded documents and model availability. Ollama is optional for tests but required for generated answers. Automated claim checks use lexical overlap and cannot establish clinical entailment. Tractography, functional mapping, vascular imaging, risk estimation, and corridor optimization are not implemented. This system is for research and education, not patient care.
+The history is synthetic, and MRI model outputs are experimental and not clinically validated. Retrieval quality depends on downloaded documents and model availability. Gemini is required for generated answers and receives the question, verified passages, and supplied structured patient context; configure an authorized Gemini API key and do not send identifiable clinical information. Raw MRI images are not sent by the RAG integration. Automated claim checks use lexical overlap and cannot establish clinical entailment. Tractography, functional mapping, vascular imaging, risk estimation, and corridor optimization are not implemented. This system is for research and education, not patient care.

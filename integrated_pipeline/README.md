@@ -21,10 +21,10 @@ state, and are not written as persistent case files. Do not expose this
 prototype publicly or upload identifiable data without appropriate
 authorization.
 
-Use the same Python environment for installation and launch. The registered
-SwinUNETR checkpoint was strictly tested with PyTorch 2.14.1+cpu and MONAI
-1.6.1; a different PyTorch release is not treated as verified by the UI. The
-3D forward path additionally requires `einops`, included in the `brats` and
+Use the same Python environment for installation and launch. The active
+SegResNet checkpoint was strictly tested with PyTorch 2.14.1+cpu and MONAI
+1.6.1; the UI also performs a strict compatibility check on the local weights.
+The 3D forward path additionally requires `einops`, included in the `brats` and
 `integrated` extras.
 
 The project’s `.streamlit/config.toml` sets the readable light-theme default.
@@ -43,6 +43,7 @@ for the selected candidates:
 |---|---|---|
 | 2D segmentation | `3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/best.pt` (`BRISCAttentionUNet`) | Official-folder test: 860 cases, global foreground Dice 0.875253, IoU 0.778178, mean per-image Dice 0.856058. |
 | 2D classification | `4_2d_classification/outputs/classification/20261018_214516_seed2026/best.pt` (`BRISCClassifier`) | User-supplied earlier 30-epoch checkpoint; validation-only evidence and older sample-level split protocol. No test metrics are attributed to this checkpoint. |
+| 3D segmentation | `2_3d_segmentation/outputs/segmentation3d/SegResNet_BraTS2021/model.pt` (`MONAI SegResNet`, 4→3 channels) | User-supplied checkpoint; strict state-dict compatibility and one-case inference are checked separately from clinical validation. |
 
 The 2D classifier path above follows the user-supplied local checkpoint; it is
 not the newer test-evaluated checkpoint described in the technical dossier.
@@ -51,11 +52,10 @@ Dataset provenance and patient-level independence are not established.
 Classifier outputs are the BRISC folder classes `glioma`, `meningioma`,
 `no_tumor`, and `pituitary`; they are not pathology-confirmed subtypes.
 
-The selected checkpoint files are local artifacts and are not version-controlled.
-When present at the registry paths, the app checks the recorded size and SHA-256
-before inference; another checkout must supply the matching files or configure
-local paths in the sidebar. No predictions are produced without compatible
-weights. See the checkpoint manifest and
+The 2D checkpoint files are local artifacts; the supplied 3D SegResNet checkpoint
+is retained at its registered path. When present, the app checks the recorded
+size and SHA-256 before inference; another checkout must supply matching files.
+No predictions are produced without compatible weights. See the checkpoint manifest and
 [`06_segmentation_results.md`](../Capstone_Technical_Dossier/06_segmentation_results.md)
 and
 [`07_classification_results.md`](../Capstone_Technical_Dossier/07_classification_results.md)
@@ -79,38 +79,49 @@ for provenance and limitations.
   generated only after its model hooks succeed.
 - Spatial-risk and corridor analysis require compatible 3D outputs and
   anatomical inputs; they remain blocked for this 2D-only workflow.
-- The registered SwinUNETR checkpoint is specified by its supplied model-card
-  contract as four inputs in `[T1, T1ce, T2, FLAIR]` order and three outputs in
-  `[ET, TC, WT]` order. The local checkpoint's tensor shapes and strict state
-  dictionary load were verified against PyTorch 2.14.1+cpu and MONAI 1.6.1;
-  that proves architectural compatibility, not training provenance or clinical
-  performance. Model-card details were supplied by the user because the remote
-  model card could not be independently retrieved. The app verifies the
-  checkpoint manifest and runtime versions before enabling inference.
-- 3D inference requires all four finite, registered NIfTI volumes and the
-  user's confirmation that they are from the same skull-stripped study. It
-  preserves native voxel axes/affine, performs channel-wise nonzero
-  normalization, and uses a 64-cube sliding window with batch size 1 for the
-  CPU-constrained app. The supplied model-card ROI is 128-cube; using a smaller
-  ROI is an explicit runtime memory adjustment, not a change to the checkpoint
-  or whole-volume preprocessing. It produces ET/TC/WT masks only; RC is
+- The active 3D checkpoint is the user-supplied raw MONAI SegResNet state
+  dictionary. Inspection found 83 tensors, a 4-channel input projection, and a
+  3-channel output head; strict loading passed with PyTorch 2.14.1+cpu and
+  MONAI 1.6.1. The user-provided channel contract is input
+  `[T1ce, T1, T2, FLAIR]`, output `[TC, WT, ET]`. Channel semantics and training
+  provenance are not embedded in the checkpoint, so this contract is recorded
+  as supplied, not independently proven by tensor inspection.
+- 3D inference requires four finite, co-registered NIfTI inputs with 1 mm
+  isotropic spacing. It preserves native voxel axes and affine, does not
+  resample, and applies the project's per-channel nonzero normalization; a
+  match to this checkpoint's original training preprocessing is unverified.
+  Runtime inference uses a 64-cube sliding window, overlap 0.25, and batch size
+  1, with sigmoid probabilities thresholded at 0.5. Those are tested runtime
+  settings, not checkpoint metadata. TC, WT, and ET masks are exported; RC is
   unavailable and is never synthesized. CPU/RAM preflight can block inference.
-  A successful 64-cube checkpoint forward pass verifies runtime compatibility,
-  not a patient case. A complete real four-modality smoke test and clinical
-  performance remain unvalidated until a suitable study sample is run.
-- SwinUNETR's MONAI forward path imports `einops`; it is included in the
-  `brats` and `integrated` optional dependencies so installing
-  `.[brats,integrated]` supplies the runtime dependency.
+  The integrated CPU smoke run on one BraTS2021 case completed in 60.12 s and
+  measured Dice 0.673707/0.814576/0.550974 for TC/WT/ET against its supplied
+  reference mask. This is a one-case smoke comparison, not clinical validation
+  or a generalization estimate. A separate BraTS-GLI case completed inference
+  but yielded only 2 WT voxels and no TC/ET voxels; performance across dataset
+  variants is therefore not established.
+- The original SwinUNETR checkpoint remains on disk but is not the active
+  registered model. SegResNet's MONAI forward path imports `einops`; it is
+  included in the `brats` and `integrated` optional dependencies.
 - The V8 spatial risk mapper may run after 3D segmentation when an aligned
   SynthSeg volume and its configured template are available. Its scores and
   corridor candidates are experimental, not calibrated injury probabilities
-  or surgical recommendations. Standalone corridor planning is not
-  implemented.
-- RAG is optional. Only structured analysis outputs and the question are sent
-  when the user explicitly enables structured context. General chat questions
-  contain no patient context. Raw MRI pixels and files are never sent. The chat
-  checks the local API, literature chunk index, Ollama service, and configured
-  Ollama model; missing prerequisites are shown with setup instructions.
+  or surgical recommendations. DTI and tract inputs are optional; when absent,
+  V8 skips the tract component and renormalizes the weights of its available
+  components rather than requiring a fabricated placeholder volume. Outputs
+  include the spatial-risk map and any generated corridor candidates. This
+  SegResNet checkpoint predicts only TC/WT/ET; it cannot produce an RC
+  (resection-cavity) mask. A verified model or a separately supplied registered
+  cavity label would be required for that output. Standalone corridor planning
+  is not implemented.
+- RAG is optional. Structured 2D and 3D segmentation, classification, spatial
+  risk/corridor results, and modality labels/geometry are sent with the question
+  only when the user explicitly enables structured context. General chat
+  questions contain no patient context. Raw MRI pixels, voxel masks, and files
+  are never sent. The chat checks the local API, literature chunk index, and
+  Gemini API-key configuration; missing prerequisites are shown with setup
+  instructions. Gemini receives the structured context, so do not send
+  identifiable clinical information.
   Retrieved passages/citations are displayed separately from generated answer
   text. The local RAG setup guide is
   [`6_rag_treatment_planning/README.md`](../6_rag_treatment_planning/README.md).

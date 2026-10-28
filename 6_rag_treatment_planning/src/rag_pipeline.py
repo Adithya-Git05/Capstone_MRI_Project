@@ -62,7 +62,7 @@ class RAGPipeline:
                 "limitations": ["This automated retrieval result is not clinical validation."],
                 "citations": [],
             }
-            llm_warning = "Ollama was not called because no sufficiently relevant evidence passed filtering."
+            llm_warning = "Gemini was not called because no sufficiently relevant evidence passed filtering."
         else:
             answer, llm_warning = generate_response(question, patient, evidence)
         warnings.extend(patient_warnings(patient))
@@ -78,14 +78,10 @@ class RAGPipeline:
             warnings.append("One or more patient-specific numerical values differ from the supplied patient context.")
         interpretation_warnings = validate_patient_interpretations(answer, patient)
         warnings.extend(interpretation_warnings)
-        if (
-            claim_verification.get("unsupported_claim_count")
-            or numerical_checks.get("discrepancy_count")
-            or interpretation_warnings
-        ):
+        if numerical_checks.get("discrepancy_count"):
             warnings.append(
-                "Generated synthesis was withheld because automated checks found unsupported "
-                "claims or patient-context inconsistencies; review retrieved passages directly."
+                "Generated synthesis was withheld because automated checks found patient-value "
+                "inconsistencies; review retrieved passages directly."
             )
             citations = []
             answer = {

@@ -33,7 +33,8 @@ def test_reranking_and_verification():
 def test_patient_context_and_missing_data():
     patient = load_patient_context()
     assert patient['data_type'] == 'SYNTHETIC_DEMO'
-    assert 'DTI' in patient_warnings(patient)[1]
+    assert 'fictional history' in patient_warnings(patient)[0].lower()
+    assert 'tumor_volume_ml' not in patient
 
 def test_claim_verification_requires_supporting_citation():
     evidence = [{'chunk_id': 'P1_C001', 'title': 'Source', 'text': 'DTI tractography is sensitive to acquisition quality.'}]
@@ -151,16 +152,68 @@ def test_llm_withholds_generated_claims_when_citation_is_not_a_retrieved_chunk()
         (),
         {
             "raise_for_status": lambda self: None,
-            "json": lambda self: {"response": json.dumps(generated)},
+            "json": lambda self: {
+                "candidates": [
+                    {"content": {"parts": [{"text": json.dumps(generated)}]}}
+                ]
+            },
         },
     )()
 
-    with patch("src.llm.httpx.post", return_value=response):
+    with patch("src.llm.GEMINI_API_KEY", "test-key"), patch(
+        "src.llm.httpx.post", return_value=response
+    ):
         answer, warning = generate_response("Question", {}, evidence)
 
     assert answer["summary"].startswith("The model-generated synthesis was withheld")
     assert answer["citations"] == []
     assert warning and "EXACT_ID" in warning
+
+
+def test_llm_keeps_patient_context_answer_when_no_literature_citation_is_returned():
+    generated = {
+        "summary": "The provided analysis context reports an experimental classification.",
+        "patient_findings": [],
+        "risk_interpretation": "",
+        "corridor_comparison": [],
+        "evidence_supported_considerations": [],
+        "uncertainties": [],
+        "missing_information": [],
+        "limitations": [],
+        "citations": [],
+    }
+    response = type(
+        "Response",
+        (),
+        {
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "candidates": [
+                    {"content": {"parts": [{"text": json.dumps(generated)}]}}
+                ]
+            },
+        },
+    )()
+
+    with patch("src.llm.GEMINI_API_KEY", "test-key"), patch(
+        "src.llm.httpx.post", return_value=response
+    ):
+        answer, warning = generate_response(
+            "Summarize prior output.",
+            {"analysis_results_text": "CLASSIFICATION INFERENCE: glioma."},
+            [
+                {
+                    "chunk_id": "P1_C001",
+                    "paper_id": "P1",
+                    "title": "Source",
+                    "text": "Retrieved literature.",
+                }
+            ],
+        )
+
+    assert answer["summary"] == generated["summary"]
+    assert answer["citations"] == []
+    assert warning and "no verifiable citations" in warning
 
 def test_llm_accepts_citations_only_for_exact_retrieved_chunk_ids():
     evidence = [{"chunk_id": "P1_C001", "paper_id": "P1", "title": "Source", "text": "DTI tractography depends on acquisition quality."}]
@@ -180,17 +233,82 @@ def test_llm_accepts_citations_only_for_exact_retrieved_chunk_ids():
         (),
         {
             "raise_for_status": lambda self: None,
-            "json": lambda self: {"response": json.dumps(generated)},
+            "json": lambda self: {
+                "candidates": [
+                    {"content": {"parts": [{"text": json.dumps(generated)}]}}
+                ]
+            },
         },
     )()
 
-    with patch("src.llm.httpx.post", return_value=response):
+    with patch("src.llm.GEMINI_API_KEY", "test-key"), patch(
+        "src.llm.httpx.post", return_value=response
+    ) as request:
         answer, warning = generate_response("Question", {}, evidence)
 
     assert answer["summary"] == generated["summary"]
     assert answer["citations"][0]["chunk_id"] == "P1_C001"
     assert answer["citations"][0]["status"] == "verified"
     assert warning is None
+    request.assert_called_once()
+    request_args = request.call_args.kwargs
+    assert request_args["headers"]["x-goog-api-key"] == "test-key"
+    prompt = request_args["json"]["contents"][0]["parts"][0]["text"]
+    assert "PATIENT HISTORY AND PRIOR MRI ANALYSIS RESULTS" in prompt
+    assert "RETRIEVED PAPER LITERATURE" in prompt
+    assert "chunk_id=P1_C001" in prompt
+    assert "DTI tractography depends on acquisition quality." in prompt
+
+
+def test_llm_sends_preceding_analysis_results_as_plain_text():
+    response_payload = {
+        "summary": "The supplied classification is glioma.",
+        "patient_findings": [],
+        "risk_interpretation": "",
+        "corridor_comparison": [],
+        "evidence_supported_considerations": [],
+        "uncertainties": [],
+        "missing_information": [],
+        "limitations": [],
+        "citations": [{"chunk_id": "P1_C001"}],
+    }
+    response = type(
+        "Response",
+        (),
+        {
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "candidates": [
+                    {"content": {"parts": [{"text": json.dumps(response_payload)}]}}
+                ]
+            },
+        },
+    )()
+    patient = {
+        "analysis_results_text": (
+            "CLASSIFICATION INFERENCE:\n- classification: glioma\n"
+            "3D SEGMENTATION INFERENCE:\n- voxel counts: WT=8"
+        )
+    }
+    evidence = [
+        {
+            "chunk_id": "P1_C001",
+            "paper_id": "P1",
+            "title": "Source",
+            "text": "Retrieved literature passage.",
+        }
+    ]
+
+    with patch("src.llm.GEMINI_API_KEY", "test-key"), patch(
+        "src.llm.httpx.post", return_value=response
+    ) as request:
+        generate_response("Summarize the prior findings.", patient, evidence)
+
+    prompt = request.call_args.kwargs["json"]["contents"][0]["parts"][0]["text"]
+    assert "CLASSIFICATION INFERENCE" in prompt
+    assert "classification: glioma" in prompt
+    assert "WT=8" in prompt
+    assert "Retrieved literature passage." in prompt
 
 def test_numeric_checks_omit_missing_and_accept_matching_or_rounded_values():
     patient = {"tumor_volume_ml": 42.3, "risk_score": 0.31}

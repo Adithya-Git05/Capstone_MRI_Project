@@ -104,12 +104,45 @@ def generate_markdown_report(result: dict[str, Any]) -> str:
         "### Surgical Corridor Analysis",
         "",
         f"- Status: {corridor_stage.get('status', corridors.get('status', 'not run'))}",
-        f"- Available candidate results: {risk_result.get('corridors', 'not available') if isinstance(risk_result, dict) else 'not available'}",
-        f"- Missing prerequisites: {'; '.join(corridor_stage.get('reasons', [])) or corridors.get('missing_data', 'No missing prerequisites reported.')}",
-        "",
-        "### Evidence Summary",
-        "",
     ]
+    corridor_records = (
+        risk_result.get("corridors", []) if isinstance(risk_result, dict) else []
+    )
+    if corridor_records:
+        lines.extend(
+            [
+                "",
+                "| Candidate corridor | Length (mm) | Mean risk | Maximum risk | Tract risk | Tumor coverage | Composite cost |",
+                "|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for corridor in corridor_records:
+            lines.append(
+                "| "
+                + " | ".join(
+                    str(value if value is not None else "not available").replace("|", "\\|")
+                    for value in (
+                        corridor.get("corridor_name", corridor.get("corridor_id", "not available")),
+                        corridor.get("path_length_mm", corridor.get("length_mm")),
+                        corridor.get("mean_risk"),
+                        corridor.get("maximum_risk", corridor.get("max_risk")),
+                        corridor.get("tract_risk"),
+                        corridor.get("tumor_coverage", corridor.get("coverage")),
+                        corridor.get("composite_cost"),
+                    )
+                )
+                + " |"
+            )
+    else:
+        lines.append("- Candidate corridor results: not available.")
+    lines.extend(
+        [
+            f"- Missing prerequisites: {'; '.join(corridor_stage.get('reasons', [])) or corridors.get('missing_data', 'No missing prerequisites reported.')}",
+            "",
+            "### Evidence Summary",
+            "",
+        ]
+    )
     if rag and rag.get("status") == "failed":
         lines.extend(
             [
@@ -269,7 +302,7 @@ def generate_report(result: dict[str, Any]) -> bytes:
             image = plt.imread(BytesIO(visualization), format="png")
             fig, ax = plt.subplots(figsize=(12, 4))
             ax.imshow(image)
-            ax.set_title("SwinUNETR ET / TC / WT segmentation visualization")
+            ax.set_title("3D Segmentation Visualization (TC / WT / ET)")
             ax.axis("off")
             pdf.savefig(fig, bbox_inches="tight")
             plt.close(fig)

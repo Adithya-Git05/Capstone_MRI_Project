@@ -14,7 +14,9 @@ def load_patient_context(case_id: str = "DEMO_001", path=PATIENT_PATH) -> dict[s
 def patient_warnings(patient: dict[str, Any]) -> list[str]:
     warnings = []
     if patient.get("data_type", "").upper().startswith("SYNTHETIC"):
-        warnings.append("SYNTHETIC/DEMO PATIENT DATA: values are not real clinical results.")
+        warnings.append(
+            "SYNTHETIC/DEMO PATIENT HISTORY: this fictional history is not an MRI finding."
+        )
     if patient.get("missing_modalities"):
         warnings.append("Missing modalities: " + ", ".join(patient["missing_modalities"]) + ".")
     return warnings

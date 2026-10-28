@@ -56,83 +56,121 @@
     "segmentation_3d": {
       "task": "segmentation",
       "dimensionality": "3D",
-      "status": "model_card_documented",
-      "checkpoint": "2_3d_segmentation/outputs/segmentation3d/SwinUNETR/best.pth",
-      "architecture": "SwinUNETR",
+      "status": "user_supplied_checkpoint_strictly_verified",
+      "checkpoint": "2_3d_segmentation/outputs/segmentation3d/SegResNet_BraTS2021/model.pt",
+      "architecture": "SegResNet",
       "input_shape": [1, 4],
-      "feature_size": 48,
-      "input_modalities": ["t1n", "t1c", "t2w", "t2f"],
-      "modalities": ["t1n", "t1c", "t2w", "t2f"],
+      "feature_size": 16,
+      "input_modalities": ["t1c", "t1n", "t2w", "t2f"],
+      "modalities": ["t1c", "t1n", "t2w", "t2f"],
+      "input_spacing_mm": [1.0, 1.0, 1.0],
+      "input_contract_source": "User-supplied model description; checkpoint file contains no embedded training configuration.",
       "preprocessing": {
         "requirements": [
-          "Four skull-stripped, co-registered sequences from the same study",
-          "Channel-wise normalization over nonzero voxels",
-          "No orientation conversion or resampling is applied by this inference path"
+          "Four co-registered sequences from the same study in T1ce, T1, T2, FLAIR order",
+          "Input spacing must be 1x1x1 mm",
+          "Channel-wise nonzero normalization reused from the project loader; match to this checkpoint's original training preprocessing is unverified",
+          "Native voxel axes and affine are preserved; no orientation conversion or resampling is applied"
         ],
-        "normalization": "NormalizeIntensity(nonzero=true, channel_wise=true)",
+        "normalization": "Project loader: per-channel mean/std normalization over nonzero voxels",
         "orientation": "preserve uploaded voxel axes and affine",
         "resampling": "none"
       },
       "output_channels": 3,
-      "output_order": ["ET", "TC", "WT"],
+      "output_order": ["TC", "WT", "ET"],
       "classes": {
-        "0": "ET - enhancing tumor",
-        "1": "TC - tumor core",
-        "2": "WT - whole tumor"
+        "0": "TC - tumor core",
+        "1": "WT - whole tumor",
+        "2": "ET - enhancing tumor"
       },
       "unavailable_outputs": {
-        "RC": "Not documented for this checkpoint; no RC mask is produced."
+        "RC": "Not specified by the supplied checkpoint; no RC mask is produced."
       },
       "inference": {
         "activation": "sigmoid",
         "threshold": 0.5,
         "method": "sliding_window_inference",
         "roi_size": [64, 64, 64],
-        "overlap": 0.7,
+        "overlap": 0.25,
         "sw_batch_size": 1,
-        "checkpoint_key": "state_dict",
-        "roi_adjustment": {
-          "model_card_roi_size": [128, 128, 128],
-          "runtime_roi_size": [64, 64, 64],
-          "reason": "Reduce CPU inference working memory; 64 is divisible by the SwinUNETR 32-voxel encoder downsampling factor.",
-          "clinical_or_accuracy_validation": "not performed"
-        }
+        "checkpoint_format": "raw tensor state_dict",
+        "runtime_settings_source": "Low-memory settings used in the one-case CPU smoke run; no inference configuration was embedded in the checkpoint."
       },
       "checkpoint_integrity": {
-        "size_bytes": 754036090,
-        "sha256": "7D9A1578D354AE710D14D786F443F042EDE85C2D6D4E534BDEE0EEDA9F1F1D64"
+        "size_bytes": 18840620,
+        "sha256": "860CCB3F1C21C99D0410AD8A1AC4EF6B8FAB60CEC0A503B0BA42675741A750AE"
       },
       "provenance": {
-        "model_card_url": "https://huggingface.co/janiharman/swinunetr-pretrained-brats2025",
-        "model_card_details": "User-supplied model-card specification; remote page retrieval returned HTTP 401 during this task, so these training/inference claims were not independently fetched.",
-        "documented_by_model_card": [
-          "MONAI SwinUNETR",
-          "4 input channels in [T1, T1ce, T2, FLAIR] order",
-          "3 output channels in [ET, TC, WT] order",
-          "feature_size=48",
-          "Skull-stripped, co-registered volumes with channel-wise nonzero normalization",
-          "Sigmoid, threshold=0.5, 128x128x128 sliding window, overlap=0.7, sw_batch_size=1"
-        ]
+        "source": "User-supplied model.pt.zip, copied byte-for-byte to the registered model.pt path.",
+        "user_described_contract": [
+          "MONAI SegResNet",
+          "4 input channels in [T1ce, T1, T2, FLAIR] order",
+          "3 output channels in [TC, WT, ET] order",
+          "1x1x1 mm input"
+        ],
+        "checkpoint_embedded_configuration": "None; preprocessing, activation, threshold and output semantics are not encoded in the raw state dictionary."
       },
       "compatibility_test": {
         "status": "strict_state_dict_load_passed",
         "checkpoint_inspection": {
-          "checkpoint_key": "state_dict",
-          "state_dict_tensor_count": 159,
-          "input_projection_shape": [48, 4, 2, 2, 2],
-          "output_head_shape": [3, 48, 1, 1, 1],
-          "state_dict_prefix": "net."
+          "checkpoint_format": "raw tensor state_dict",
+          "state_dict_tensor_count": 83,
+          "input_projection_shape": [16, 4, 3, 3, 3],
+          "output_head_shape": [3, 16, 1, 1, 1]
         },
         "strict_load": {
-          "prefix_removed": "net.",
           "result": "All keys matched successfully",
           "torch_version": "2.14.1+cpu",
           "monai_version": "1.6.1"
         },
         "limitations": [
-          "Strict tensor compatibility does not independently confirm training provenance or label semantics.",
-          "No complete real four-modality sample is present in the workspace; inference and clinical performance are unvalidated."
+          "Strict tensor compatibility does not independently establish training provenance or label semantics.",
+          "User-supplied input/output order is recorded but not encoded in the checkpoint.",
+          "Training preprocessing and the model's intended activation are not documented."
         ]
+      },
+      "smoke_test": {
+        "status": "integrated_pipeline_one_case_cpu_inference_completed",
+        "case_source": "BraTS2021_01017 from the supplied BraTS2021 archive",
+        "input_shape": [240, 240, 155],
+        "spacing_mm": [1.0, 1.0, 1.0],
+        "sliding_window_count": 75,
+        "inference_time_seconds": 60.12,
+        "activation_and_threshold": "Independent sigmoid at 0.5 used for this smoke comparison; training convention is unverified.",
+        "reference_dice": {
+          "TC": 0.673707,
+          "WT": 0.814576,
+          "ET": 0.550974
+        },
+        "validation_checks": {
+          "strict_checkpoint_load": "passed",
+          "finite_probabilities_in_0_to_1": "passed",
+          "binary_TC_WT_ET_masks": "passed",
+          "source_shape_and_affine_preserved": "passed",
+          "visualization_png_generated": "passed"
+        },
+        "limitations": "Single-case smoke comparison only; not a benchmark, generalization estimate, or clinical validation. Training preprocessing and activation convention remain unverified."
+      },
+      "additional_case_observation": {
+        "case_source": "BraTS-GLI-00511-101 archive",
+        "inference_completed": true,
+        "mask_voxel_count": {
+          "TC": 0,
+          "WT": 2,
+          "ET": 0
+        },
+        "limitation": "No quantitative comparison is recorded for this separate case; the near-empty prediction shows performance is not established across dataset variants."
+      },
+      "retained_previous_model": {
+        "status": "retained_not_active",
+        "architecture": "SwinUNETR",
+        "checkpoint": "2_3d_segmentation/outputs/segmentation3d/SwinUNETR/best.pth",
+        "input_modalities": ["t1n", "t1c", "t2w", "t2f"],
+        "output_order": ["ET", "TC", "WT"],
+        "checkpoint_integrity": {
+          "size_bytes": 754036090,
+          "sha256": "7D9A1578D354AE710D14D786F443F042EDE85C2D6D4E534BDEE0EEDA9F1F1D64"
+        }
       },
       "selection_evidence": null,
       "clinical_performance": "unvalidated"

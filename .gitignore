@@ -19,6 +19,7 @@
 *.ckpt
 !/**/outputs/**/
 !/2_3d_segmentation/outputs/segmentation3d/SwinUNETR/best.pth
+!/2_3d_segmentation/outputs/segmentation3d/SegResNet_BraTS2021/model.pt
 !/3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/best.pt
 !/4_2d_classification/outputs/classification/20261018_214516_seed2026/best.pt
 

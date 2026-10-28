@@ -14,7 +14,10 @@ from integrated_pipeline.modules.model_adapters import classify_slice, segment_s
 from integrated_pipeline.modules.gradcam import classifier_gradcam
 from integrated_pipeline.modules.report_generator import generate_report
 from integrated_pipeline.modules.rag_adapter import validate_rag_evidence
-from integrated_pipeline.modules.risk_adapter import risk_prerequisite_status
+from integrated_pipeline.modules.risk_adapter import (
+    risk_prerequisite_status,
+    run_v8_risk_mapping,
+)
 from integrated_pipeline.modules.slice_extraction import extract_axial_slice, select_slice
 from integrated_pipeline.pipeline import run_pipeline
 from src.classification.model import BRISCClassifier
@@ -127,6 +130,62 @@ class IntegrationOutputTests(unittest.TestCase):
             status = risk_prerequisite_status(config, np.ones((2, 2, 2), dtype=bool))
             self.assertEqual(status["status"], "not run")
             self.assertIn("not executed", status["preflight"])
+
+    def test_v8_runs_without_dti_and_returns_native_space_risk_outputs(self) -> None:
+        shape = (32, 32, 32)
+        affine = np.diag([-1.0, 1.0, 1.0, 1.0])
+        affine[0, 3] = 31.0
+        rng = np.random.default_rng(42)
+        mri = rng.normal(size=shape).astype(np.float32)
+        labels = np.zeros(shape, dtype=np.int16)
+        labels[3:29, 3:29, 3:29] = 2
+        labels[4:8, 4:8, 4:8] = 16
+        labels[15:18, 15:18, 15:18] = 4
+        tumor = np.zeros(shape, dtype=np.uint8)
+        tumor[15:18, 15:18, 15:18] = 1
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, data in (
+                ("mri", mri),
+                ("labels", labels),
+                ("tumor", tumor),
+            ):
+                nib.save(nib.Nifti1Image(data, affine), root / f"{name}.nii.gz")
+
+            result = run_v8_risk_mapping(
+                root / "mri.nii.gz",
+                root / "tumor.nii.gz",
+                root / "labels.nii.gz",
+                root / "risk_outputs",
+                "synthetic-only",
+            )
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(result["risk_map"].shape, shape)
+            self.assertTrue(np.isfinite(result["risk_map"]).all())
+            np.testing.assert_allclose(result["output_affine"], affine)
+            self.assertFalse(result["qc"]["dti_available"])
+            self.assertNotIn("T", result["component_maps"])
+            self.assertNotIn("T", result["active_weights"])
+            self.assertAlmostEqual(sum(result["active_weights"].values()), 1.0)
+            self.assertTrue(Path(result["output_paths"]["validated"]).is_dir())
+            self.assertTrue(Path(result["output_paths"]["corridors"]).is_dir())
+            risk_download = root / "downloaded-risk.nii.gz"
+            risk_download.write_bytes(result["risk_map_nifti"])
+            downloaded_risk = nib.load(str(risk_download))
+            self.assertEqual(downloaded_risk.shape, shape)
+            np.testing.assert_allclose(downloaded_risk.affine, affine)
+            self.assertGreater(len(result["corridors"]), 0)
+            self.assertIsNotNone(result["corridor_mask_nifti"])
+            corridor_download = root / "downloaded-corridors.nii.gz"
+            corridor_download.write_bytes(result["corridor_mask_nifti"])
+            downloaded_corridors = nib.load(str(corridor_download))
+            self.assertEqual(downloaded_corridors.shape, shape)
+            np.testing.assert_allclose(downloaded_corridors.affine, affine)
+            self.assertTrue(
+                np.any(downloaded_corridors.get_fdata(dtype=np.float32) > 0)
+            )
+            self.assertIn(b"<html", result["interactive_report_html"].lower())
 
     def test_rag_missing_evidence_is_explicit(self) -> None:
         result = validate_rag_evidence(

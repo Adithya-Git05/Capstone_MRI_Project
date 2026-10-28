@@ -161,6 +161,89 @@ def verify_model_card_checkpoint(
     return result
 
 
+def _load_segresnet_state_dict(checkpoint_path: Path) -> dict[str, torch.Tensor]:
+    try:
+        state_dict = torch.load(
+            checkpoint_path,
+            map_location="cpu",
+            weights_only=True,
+            mmap=True,
+        )
+    except (OSError, RuntimeError, ValueError, pickle.UnpicklingError) as error:
+        raise ValueError(f"Could not safely read the SegResNet checkpoint: {error}") from error
+    if (
+        not isinstance(state_dict, dict)
+        or not state_dict
+        or not all(isinstance(value, torch.Tensor) for value in state_dict.values())
+    ):
+        raise ValueError("The SegResNet checkpoint must be a raw tensor state dictionary.")
+    return state_dict
+
+
+def _build_segresnet_model(model_spec: dict[str, Any]) -> torch.nn.Module:
+    if (
+        model_spec.get("architecture") != "SegResNet"
+        or model_spec.get("input_modalities") != ["t1c", "t1n", "t2w", "t2f"]
+        or model_spec.get("output_order") != ["TC", "WT", "ET"]
+    ):
+        raise ValueError("The registry does not describe the supplied SegResNet contract.")
+    inference = model_spec.get("inference")
+    roi_size = inference.get("roi_size") if isinstance(inference, dict) else None
+    if (
+        not isinstance(roi_size, list)
+        or len(roi_size) != 3
+        or any(not isinstance(value, int) or value < 32 or value % 8 for value in roi_size)
+    ):
+        raise ValueError("SegResNet ROI dimensions must be multiples of 8 and at least 32.")
+    feature_size = model_spec.get("feature_size")
+    if not isinstance(feature_size, int) or feature_size <= 0:
+        raise ValueError("SegResNet feature_size must be a positive integer.")
+    return build_monai_model(
+        "segresnet",
+        patch_size=tuple(roi_size),
+        in_channels=4,
+        out_channels=3,
+        feature_size=feature_size,
+    )
+
+
+def verify_segresnet_checkpoint(
+    checkpoint_path: Path, model_spec: dict[str, Any]
+) -> dict[str, Any]:
+    """Strictly verify the user-supplied raw state dict against MONAI SegResNet."""
+    checkpoint_path = Path(checkpoint_path).expanduser().resolve()
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(f"3D segmentation checkpoint not found: {checkpoint_path}")
+    state_dict = _load_segresnet_state_dict(checkpoint_path)
+    model = _build_segresnet_model(model_spec)
+    try:
+        model.load_state_dict(state_dict, strict=True)
+    except RuntimeError as error:
+        raise ValueError(
+            f"The checkpoint is not strictly compatible with MONAI SegResNet: {error}"
+        ) from error
+    input_shape = tuple(state_dict["convInit.conv.weight"].shape)
+    output_shape = tuple(state_dict["conv_final.2.conv.weight"].shape)
+    if input_shape[:2] != (model_spec["feature_size"], 4):
+        raise ValueError(f"Unexpected SegResNet input projection shape: {input_shape}.")
+    if output_shape[:2] != (3, model_spec["feature_size"]):
+        raise ValueError(f"Unexpected SegResNet output head shape: {output_shape}.")
+    result = {
+        "status": "compatible",
+        "checkpoint": str(checkpoint_path),
+        "checkpoint_key": "raw_state_dict",
+        "state_dict_tensor_count": len(state_dict),
+        "input_projection_shape": list(input_shape),
+        "output_head_shape": list(output_shape),
+        "torch_version": torch.__version__,
+        "monai_version": __import__("monai").__version__,
+        "strict_load": "All keys matched successfully",
+    }
+    del model, state_dict
+    gc.collect()
+    return result
+
+
 def _available_memory_bytes() -> int:
     if os.name == "nt":
         import ctypes
@@ -551,6 +634,236 @@ def predict_model_card_case(
     del probabilities, image, volume
     gc.collect()
     return output_dir
+
+
+def predict_segresnet_case(
+    checkpoint_path: Path,
+    case_directory: Path,
+    output_dir: Path,
+    model_spec: dict[str, Any],
+    device: str | torch.device = "cpu",
+) -> Path:
+    """Run the registered SegResNet with native-space, independent BraTS region masks."""
+    import nibabel as nib
+    from src.data.brats import load_input_volume
+
+    checkpoint_path = Path(checkpoint_path).expanduser().resolve()
+    case_directory = Path(case_directory).resolve()
+    _require_new_or_empty_output_dir(output_dir)
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(f"3D segmentation checkpoint not found: {checkpoint_path}")
+
+    modalities = tuple(model_spec["input_modalities"])
+    case = BraTSCase(
+        case_id=case_directory.name,
+        patient_group=case_directory.name.rsplit("-", 1)[0],
+        directory=case_directory,
+    )
+    volume = load_input_volume(case, modalities=modalities, orientation=None)
+    image = volume["image"].to(dtype=torch.float32)
+    if image.ndim != 4 or image.shape[0] != 4 or not torch.isfinite(image).all():
+        raise ValueError("SegResNet input must be finite with shape [4, X, Y, Z].")
+    affine_spacing = tuple(
+        float(value) for value in nib.affines.voxel_sizes(volume["affine"])
+    )
+    if not np.allclose(volume["spacing"], affine_spacing, atol=0.01):
+        raise ValueError(
+            "The NIfTI header spacing does not match the voxel-to-world affine: "
+            f"header={volume['spacing']}, affine={affine_spacing}."
+        )
+    if not np.allclose(affine_spacing, (1.0, 1.0, 1.0), atol=0.01):
+        raise ValueError(
+            "The supplied SegResNet requires 1 mm isotropic input; "
+            f"received affine spacing {affine_spacing}."
+        )
+
+    inference = model_spec["inference"]
+    roi_size = tuple(int(value) for value in inference["roi_size"])
+    if int(inference["sw_batch_size"]) != 1:
+        raise ValueError("SegResNet inference requires sliding-window batch size 1.")
+    if model_spec["output_order"] != ["TC", "WT", "ET"]:
+        raise ValueError("SegResNet outputs must remain in the supplied [TC, WT, ET] order.")
+    selected_device = _resolve_inference_device(device)
+    memory = _check_inference_memory(
+        checkpoint_path, image, output_channels=3, roi_size=roi_size
+    )
+    process_memory_before = _process_memory_usage()
+    inference_started = time.perf_counter()
+    state_dict = _load_segresnet_state_dict(checkpoint_path)
+    model = _build_segresnet_model(model_spec)
+    input_shape = tuple(state_dict["convInit.conv.weight"].shape)
+    output_shape = tuple(state_dict["conv_final.2.conv.weight"].shape)
+    checkpoint_tensor_count = len(state_dict)
+    try:
+        model.load_state_dict(state_dict, strict=True)
+    except RuntimeError as error:
+        raise ValueError(f"SegResNet checkpoint compatibility check failed: {error}") from error
+    del state_dict
+    gc.collect()
+
+    from monai.inferers import sliding_window_inference
+
+    previous_thread_count = torch.get_num_threads()
+    inference_thread_count = (
+        min(previous_thread_count, 4)
+        if selected_device.type == "cpu"
+        else previous_thread_count
+    )
+    if inference_thread_count != previous_thread_count:
+        torch.set_num_threads(inference_thread_count)
+    if selected_device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(selected_device)
+    try:
+        model = model.to(selected_device).eval()
+        with torch.inference_mode():
+            logits = sliding_window_inference(
+                inputs=image.unsqueeze(0),
+                roi_size=roi_size,
+                sw_batch_size=int(inference["sw_batch_size"]),
+                predictor=model,
+                overlap=float(inference["overlap"]),
+                sw_device=selected_device,
+                device=torch.device("cpu"),
+            )
+            if logits.ndim != 5 or logits.shape[1] != 3:
+                raise ValueError(
+                    "SegResNet output must have shape [1, 3, X, Y, Z]; "
+                    f"received {tuple(logits.shape)}."
+                )
+            if not torch.isfinite(logits).all():
+                raise ValueError("SegResNet produced non-finite logits.")
+            probabilities = torch.sigmoid(logits[0]).numpy()
+            del logits
+    except RuntimeError as error:
+        if "out of memory" in str(error).lower():
+            raise MemoryError(
+                f"SegResNet {selected_device.type.upper()} inference ran out of memory "
+                f"using ROI {roi_size} and sliding-window batch size 1."
+            ) from error
+        raise
+    finally:
+        if inference_thread_count != previous_thread_count:
+            torch.set_num_threads(previous_thread_count)
+        del model
+        gc.collect()
+        if selected_device.type == "cuda":
+            torch.cuda.empty_cache()
+
+    output_order = list(model_spec["output_order"])
+    expected_shape = tuple(int(value) for value in image.shape[1:])
+    if probabilities.shape != (3, *expected_shape):
+        raise ValueError(
+            f"SegResNet probability shape {probabilities.shape} does not match input {expected_shape}."
+        )
+    if (
+        not np.isfinite(probabilities).all()
+        or np.any(probabilities < 0)
+        or np.any(probabilities > 1)
+    ):
+        raise ValueError("SegResNet probabilities must be finite and within [0, 1].")
+
+    threshold = float(inference["threshold"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+    affine = np.asarray(volume["affine"], dtype=np.float64)
+    header = volume["header"].copy()
+    header.set_data_dtype(np.uint8)
+    probability_summary: dict[str, dict[str, float]] = {}
+    mask_voxel_count: dict[str, int] = {}
+    for channel, region in enumerate(output_order):
+        probability_map = probabilities[channel]
+        mask = probability_map >= threshold
+        probability_summary[region] = {
+            "minimum": float(probability_map.min()),
+            "maximum": float(probability_map.max()),
+            "mean": float(probability_map.mean()),
+        }
+        mask_voxel_count[region] = int(mask.sum())
+        nib_image = nib.Nifti1Image(mask.astype(np.uint8), affine, header.copy())
+        nib.save(nib_image, str(output_dir / f"{case.case_id}_{region}.nii.gz"))
+        del mask, nib_image
+
+    wt_channel = output_order.index("WT")
+    occupied_slices = np.flatnonzero(
+        np.any(probabilities[wt_channel] >= threshold, axis=(0, 1))
+    )
+    slice_index = (
+        int(occupied_slices.mean())
+        if occupied_slices.size
+        else expected_shape[2] // 2
+    )
+    _save_pretrained_visualization(
+        output_dir,
+        image[modalities.index("t1c"), :, :, slice_index].numpy(),
+        probabilities[:, :, :, slice_index],
+        output_order,
+        threshold,
+    )
+    inference_time_seconds = time.perf_counter() - inference_started
+    metadata = {
+        "pipeline": "user_supplied_monai_segresnet",
+        "architecture": "MONAI SegResNet",
+        "checkpoint": str(checkpoint_path),
+        "checkpoint_key": "raw_state_dict",
+        "checkpoint_compatibility": {
+            "status": "strict_load_passed",
+            "tensor_count": checkpoint_tensor_count,
+            "input_projection_shape": list(input_shape),
+            "output_head_shape": list(output_shape),
+            "torch_version": torch.__version__,
+            "monai_version": __import__("monai").__version__,
+        },
+        "case_id": case.case_id,
+        "modalities": list(modalities),
+        "region_order": output_order,
+        "unavailable_regions": {"RC": "This checkpoint has three outputs and does not provide RC."},
+        "output_shape": list(expected_shape),
+        "input_affine": affine.tolist(),
+        "spacing_mm": list(volume["spacing"]),
+        "orientation": None,
+        "orientation_policy": "native uploaded voxel axes; no reorientation or resampling",
+        "preprocessing": model_spec["preprocessing"],
+        "inference": inference,
+        "probability_summary": probability_summary,
+        "mask_voxel_count": mask_voxel_count,
+        "visualization": "segmentation_visualization.png",
+        "memory_preflight": memory,
+        "memory_usage": {
+            "process_before": process_memory_before,
+            "process_after": _process_memory_usage(),
+            "available_ram_after_bytes": _available_memory_bytes(),
+            "cuda_after": _cuda_memory_usage(selected_device),
+        },
+        "inference_time_seconds": inference_time_seconds,
+        "device": str(selected_device),
+        "torch_version": torch.__version__,
+        "monai_version": __import__("monai").__version__,
+        "clinical_performance": "unvalidated; one supplied labeled case was compared for smoke testing only",
+    }
+    (output_dir / "prediction_metadata.json").write_text(
+        json.dumps(metadata, indent=2), encoding="utf-8"
+    )
+    del probabilities, image, volume
+    gc.collect()
+    return output_dir
+
+
+def predict_registered_3d_case(
+    checkpoint_path: Path,
+    case_directory: Path,
+    output_dir: Path,
+    model_spec: dict[str, Any],
+) -> Path:
+    """Dispatch to the active registered 3D architecture without changing its contract."""
+    architecture = model_spec.get("architecture")
+    if architecture == "SegResNet":
+        return predict_segresnet_case(
+            checkpoint_path, case_directory, output_dir, model_spec
+        )
+    if architecture == "SwinUNETR":
+        return predict_model_card_case(
+            checkpoint_path, case_directory, output_dir, model_spec
+        )
+    raise ValueError(f"Unsupported registered 3D architecture: {architecture!r}.")
 
 
 def _ontology_metadata() -> dict[str, Any]:

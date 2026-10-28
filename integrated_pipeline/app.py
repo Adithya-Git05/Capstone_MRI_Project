@@ -106,6 +106,23 @@ def _cached_volume_compatibility(
     except (ImportError, OSError, ValueError, PackageNotFoundError) as error:
         return {"compatible": False, "status": f"verification failed: {error}"}
 
+    if model_spec.get("architecture") == "SegResNet":
+        try:
+            from src.segmentation3d.monai_engine import verify_segresnet_checkpoint
+
+            verification = verify_segresnet_checkpoint(path, model_spec)
+        except (ImportError, OSError, RuntimeError, ValueError) as error:
+            return {"compatible": False, "status": f"strict checkpoint check failed: {error}"}
+        return {
+            "compatible": True,
+            "status": (
+                f"Strict SegResNet state-dict load passed ({integrity}; "
+                f"{verification['state_dict_tensor_count']} tensors, PyTorch "
+                f"{verification['torch_version']}, MONAI {verification['monai_version']}). "
+                "Inference compatibility is confirmed; clinical performance is unvalidated."
+            ),
+        }
+
     tested = model_spec.get("compatibility_test", {}).get("strict_load", {})
     tested_torch_release = str(tested.get("torch_version", "")).split("+", 1)[0]
     current_torch_release = str(runtime["torch_version"]).split("+", 1)[0]
@@ -174,6 +191,8 @@ def _render_chat(
     chat_tab: Any,
     case_id: str,
     current_result: dict[str, Any] | None,
+    volume_result: dict[str, Any] | None = None,
+    modality_inputs: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     with chat_tab:
         st.subheader("Chat / Ask MRI Assistant")
@@ -183,8 +202,12 @@ def _render_chat(
         )
         include_results = st.checkbox(
             "Include structured results from this session (no MRI image or voxel data is sent)",
-            disabled=current_result is None,
+            disabled=current_result is None and volume_result is None,
             key="chat_include_structured_results",
+        )
+        st.caption(
+            "When enabled, the question and structured results are sent to Google Gemini "
+            "through the configured API. Do not include identifiable clinical information."
         )
         with st.expander("RAG service and knowledge-base setup", expanded=False):
             api_url = st.text_input(
@@ -194,7 +217,10 @@ def _render_chat(
             )
         readiness = _cached_rag_readiness(api_url)
         if readiness["ready"]:
-            st.success("Literature retrieval API, knowledge base, and configured Ollama model are available.")
+            st.success(
+                "Literature retrieval API and knowledge base are available; "
+                f"Gemini model {readiness['gemini_model']} is configured."
+            )
         else:
             st.warning("The chat is visible, but evidence-grounded answers are not ready.")
             for item in readiness["missing"]:
@@ -277,10 +303,17 @@ def _render_chat(
                 )
             else:
                 context_case_id = (
-                    case_id if include_results and current_result else "general-literature-question"
+                    case_id
+                    if include_results and (current_result or volume_result)
+                    else "general-literature-question"
                 )
-                if include_results and current_result:
-                    patient_context = build_patient_context(case_id, current_result)
+                if include_results and (current_result or volume_result):
+                    patient_context = build_patient_context(
+                        case_id,
+                        current_result or {},
+                        volume_result,
+                        modality_inputs,
+                    )
                 else:
                     patient_context = {
                         "case_id": context_case_id,
@@ -443,17 +476,19 @@ def _render_spatial_status(
     with spatial_tabs[0]:
         st.subheader("Spatial Risk Assessment")
         st.caption(
-            "3D SwinUNETR produces ET, TC, and WT tumor masks. The separate V8 spatial-risk "
+            "3D SegResNet produces TC, WT, and ET tumor masks. The separate V8 spatial-risk "
             "mapper additionally requires registered SynthSeg anatomical labels and its "
             "configured risk-map template."
         )
         if not study_validated:
-            st.warning("Upload and validate all four aligned NIfTI modalities to run 3D inference.")
+            st.warning(
+                "Upload four co-registered NIfTI modalities with 1 mm isotropic spacing "
+                "to run this SegResNet."
+            )
         if not input_attested:
             st.warning(
-                "Confirm that all four modalities are skull-stripped, co-registered, "
-                "and from the same study. These properties cannot all be established from "
-                "NIfTI geometry alone."
+                "Confirm that all four modalities are co-registered and from the same study. "
+                "Shared patient identity cannot be established from NIfTI geometry alone."
             )
         if not checkpoint_compatible:
             st.error(f"3D inference is unavailable: {compatibility_status}")
@@ -467,7 +502,7 @@ def _render_spatial_status(
             type="primary",
             disabled=run_disabled,
             help=(
-                "Uses the registered SwinUNETR checkpoint and its ET/TC/WT output contract. "
+                "Uses the registered SegResNet checkpoint and its TC/WT/ET output contract. "
                 "The run performs strict checkpoint loading and checks system memory."
             ),
         ):
@@ -516,8 +551,13 @@ def _render_spatial_status(
             st.error(f"3D inference failed: {volume_result['reason']}")
         elif volume_result:
             st.success(
-                "Checkpoint loaded and ET/TC/WT inference completed. "
+                "Checkpoint loaded and TC/WT/ET inference completed. "
                 "Clinical performance is unvalidated; no RC mask is produced."
+            )
+            st.caption(
+                "RC (resection cavity) is not one of this checkpoint's three output channels. "
+                "No RC mask is generated or inferred from TC/WT/ET; this model's supported "
+                "outputs are only TC, WT, and ET."
             )
             metadata = volume_result["segmentation3d_metadata"]
             st.caption(
@@ -552,7 +592,7 @@ def _render_spatial_status(
                 )
             counts = metadata.get("mask_voxel_count", {})
             metric_columns = st.columns(3)
-            for column, region in zip(metric_columns, ("ET", "TC", "WT")):
+            for column, region in zip(metric_columns, ("TC", "WT", "ET")):
                 column.metric(f"{region} mask voxels", f"{counts.get(region, 'n/a'):,}" if isinstance(counts.get(region), int) else "n/a")
             if volume_result.get("segmentation_visualization"):
                 st.image(
@@ -572,7 +612,66 @@ def _render_spatial_status(
             risk = volume_result["stages"].get("surgical risk mapping", {})
             if risk.get("status") == "completed":
                 st.success("V8 spatial risk mapping completed with its spatial QC checks.")
-                st.json(risk)
+                st.caption(risk.get("note", "Research-prototype result; not clinical advice."))
+                risk_mapping = volume_result.get("risk_mapping")
+                if isinstance(risk_mapping, dict):
+                    risk_map = np.asarray(risk_mapping["risk_map"], dtype=np.float32)
+                    risk_slice_index = int(volume_result["slice_index"])
+                    if not 0 <= risk_slice_index < risk_map.shape[2]:
+                        st.error("Risk-map slice index is outside the returned volume.")
+                    else:
+                        figure, axis = plt.subplots(figsize=(7, 6))
+                        axis.imshow(volume_result["slice_image"], cmap="gray")
+                        risk_slice = risk_map[:, :, risk_slice_index]
+                        axis.imshow(
+                            np.ma.masked_where(risk_slice <= 0, risk_slice),
+                            cmap="magma",
+                            alpha=0.55,
+                            vmin=0,
+                            vmax=1,
+                        )
+                        corridor_mask = risk_mapping.get("corridor_mask")
+                        if corridor_mask is not None and np.any(corridor_mask):
+                            corridor_slice = np.asarray(corridor_mask)[
+                                :, :, risk_slice_index
+                            ] > 0
+                            axis.contour(
+                                corridor_slice.astype(np.uint8),
+                                levels=[0.5],
+                                colors=["cyan"],
+                                linewidths=0.8,
+                            )
+                        axis.set_title(
+                            f"Experimental V8 spatial-risk score · slice {risk_slice_index}"
+                        )
+                        axis.axis("off")
+                        figure.tight_layout()
+                        st.pyplot(figure, use_container_width=True)
+                        plt.close(figure)
+                    st.json(
+                        {
+                            "active_weights": risk_mapping["active_weights"],
+                            "evidence_status": risk_mapping["evidence_status"],
+                            "DTI_and_tract_data_available": risk_mapping["qc"].get(
+                                "dti_available", False
+                            ),
+                        }
+                    )
+                    st.download_button(
+                        "Download spatial risk map (NIfTI)",
+                        risk_mapping["risk_map_nifti"],
+                        file_name=f"{case_id}_spatial_risk.nii.gz",
+                        mime="application/gzip",
+                        key="download_spatial_risk_map",
+                    )
+                    if risk_mapping.get("interactive_report_html"):
+                        st.download_button(
+                            "Download interactive 3D risk and corridor report",
+                            risk_mapping["interactive_report_html"],
+                            file_name=f"{case_id}_risk_corridors.html",
+                            mime="text/html",
+                            key="download_interactive_risk_report",
+                        )
             elif risk.get("status") == "failed":
                 st.error("V8 spatial risk mapping failed; no risk map is presented as valid.")
                 st.write(risk.get("reasons", []))
@@ -600,7 +699,15 @@ def _render_spatial_status(
                 )
                 corridors = risk.get("corridors", [])
                 if corridors:
-                    st.json(corridors)
+                    st.dataframe(corridors, use_container_width=True, hide_index=True)
+                    if risk.get("corridor_mask_nifti"):
+                        st.download_button(
+                            "Download candidate corridor mask (NIfTI)",
+                            risk["corridor_mask_nifti"],
+                            file_name=f"{case_id}_candidate_corridors.nii.gz",
+                            mime="application/gzip",
+                            key="download_candidate_corridors",
+                        )
                 else:
                     st.info("The completed V8 run returned no candidate corridors.")
             else:
@@ -983,11 +1090,11 @@ def main() -> None:
                 help=f"BraTS input channel: {modality_key}. Upload one 3D NIfTI volume.",
             )
         input_attested = st.checkbox(
-            "I confirm all four scans are skull-stripped, co-registered, and from this same study",
-            key="swinunetr_input_attested",
+            "I confirm all four scans are co-registered and from this same study",
+            key="3d_input_attested",
             help=(
-                "Registration is checked from NIfTI geometry. Skull stripping and shared "
-                "patient identity cannot be independently established from these files."
+                "Registration is checked from NIfTI geometry. Shared patient identity "
+                "cannot be independently established from these files."
             ),
         )
         synthseg_upload = st.file_uploader(
@@ -1028,14 +1135,24 @@ def main() -> None:
             except (OSError, ValueError, RuntimeError, TypeError) as error:
                 st.error(f"Four-modality input validation failed: {error}")
             else:
-                st.success(
-                    "All four volumes are registered and validated "
-                    f"(shape {study_validation['shape']}, "
-                    f"{study_validation['orientation']} orientation)."
+                spacing = tuple(study_validation["voxel_spacing_mm"])
+                spacing_valid = np.allclose(
+                    spacing, volume_spec["input_spacing_mm"], atol=0.01
                 )
+                if spacing_valid:
+                    st.success(
+                        "All four volumes are registered and validated "
+                        f"(shape {study_validation['shape']}, spacing {spacing} mm, "
+                        f"{study_validation['orientation']} orientation)."
+                    )
+                else:
+                    st.error(
+                        "The 3D SegResNet requires 1.0 mm isotropic volumes; "
+                        f"received spacing {spacing} mm. No 3D resampling is applied."
+                    )
                 st.info(
-                    "This checkpoint documents ET/TC/WT only. Check the same-study and "
-                    "skull-stripping attestation before running 3D inference."
+                    "The checkpoint's stated output order is TC/WT/ET. The exact training "
+                    "preprocessing is not embedded in the supplied checkpoint."
                 )
         if synthseg_upload is not None:
             st.caption(
@@ -1057,7 +1174,7 @@ def main() -> None:
             "2D classification checkpoint", classification_default
         )
         st.text_input(
-            "3D SwinUNETR checkpoint",
+            "3D SegResNet checkpoint",
             str(volume_spec["resolved_checkpoint"]),
             disabled=True,
         )
@@ -1092,7 +1209,7 @@ def main() -> None:
     )
     if volume_compatibility["compatible"]:
         st.sidebar.success(
-            "3D checkpoint integrity verified; tested PyTorch release matches. "
+            "3D SegResNet checkpoint integrity and strict load verified. "
             "Inference repeats strict loading; clinical performance unvalidated."
         )
     else:
@@ -1397,7 +1514,14 @@ def main() -> None:
                 case_id=case_id,
                 uploads=supplied_modalities,
                 input_attested=input_attested,
-                study_validated=study_validation is not None,
+                study_validated=(
+                    study_validation is not None
+                    and np.allclose(
+                        study_validation["voxel_spacing_mm"],
+                        volume_spec["input_spacing_mm"],
+                        atol=0.01,
+                    )
+                ),
                 checkpoint=volume_checkpoint,
                 model_spec=volume_spec,
                 checkpoint_compatible=volume_compatibility["compatible"],
@@ -1554,7 +1678,37 @@ def main() -> None:
                     mime="application/pdf",
                 )
 
-    _render_chat(tabs[4], case_id, current_result)
+    active_volume_result = st.session_state.get("volume_analysis")
+    if (
+        not isinstance(active_volume_result, dict)
+        or active_volume_result.get("run_signature") != volume_run_signature
+        or active_volume_result.get("status") != "completed"
+    ):
+        active_volume_result = None
+    active_modality_inputs = None
+    if study_validation is not None:
+        active_modality_inputs = {
+            key: {
+                "label": {
+                    "t2f": "T2-FLAIR",
+                    "t1n": "T1 native",
+                    "t1c": "T1 contrast-enhanced",
+                    "t2w": "T2-weighted",
+                }[key],
+                "uploaded": True,
+                "shape": list(study_validation["shape"]),
+                "voxel_spacing_mm": list(study_validation["voxel_spacing_mm"]),
+                "orientation": study_validation["orientation"],
+            }
+            for key in MODALITIES
+        }
+    _render_chat(
+        tabs[4],
+        case_id,
+        current_result,
+        active_volume_result,
+        active_modality_inputs,
+    )
 
 
 if __name__ == "__main__":

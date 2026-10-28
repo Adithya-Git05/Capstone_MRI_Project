@@ -166,26 +166,32 @@ class RegistryAndReportTests(unittest.TestCase):
             "validation_only",
         )
         self.assertEqual(
-            models["segmentation_3d"]["status"], "model_card_documented"
+            models["segmentation_3d"]["status"],
+            "user_supplied_checkpoint_strictly_verified",
         )
         self.assertEqual(
             models["segmentation_3d"]["checkpoint"],
-            "2_3d_segmentation/outputs/segmentation3d/SwinUNETR/best.pth",
+            "2_3d_segmentation/outputs/segmentation3d/SegResNet_BraTS2021/model.pt",
         )
         self.assertEqual(models["segmentation_3d"]["output_channels"], 3)
         self.assertEqual(
-            models["segmentation_3d"]["output_order"], ["ET", "TC", "WT"]
+            models["segmentation_3d"]["architecture"], "SegResNet"
+        )
+        self.assertEqual(
+            models["segmentation_3d"]["input_modalities"],
+            ["t1c", "t1n", "t2w", "t2f"],
+        )
+        self.assertEqual(
+            models["segmentation_3d"]["output_order"], ["TC", "WT", "ET"]
         )
         self.assertEqual(
             models["segmentation_3d"]["unavailable_outputs"]["RC"],
-            "Not documented for this checkpoint; no RC mask is produced.",
+            "Not specified by the supplied checkpoint; no RC mask is produced.",
         )
         self.assertEqual(models["segmentation_3d"]["inference"]["roi_size"], [64, 64, 64])
         self.assertEqual(models["segmentation_3d"]["inference"]["sw_batch_size"], 1)
-        self.assertEqual(
-            models["segmentation_3d"]["inference"]["roi_adjustment"]["model_card_roi_size"],
-            [128, 128, 128],
-        )
+        self.assertEqual(models["segmentation_3d"]["inference"]["overlap"], 0.25)
+        self.assertEqual(models["segmentation_3d"]["input_spacing_mm"], [1.0, 1.0, 1.0])
 
     def test_missing_checkpoints_never_produce_placeholder_predictions(self) -> None:
         models = load_model_registry()
@@ -236,15 +242,15 @@ class RegistryAndReportTests(unittest.TestCase):
         self.assertNotIn("tumor volume:", markdown.lower())
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    def test_3d_report_records_only_et_tc_wt_and_marks_clinical_status(self) -> None:
+    def test_3d_report_records_only_tc_wt_et_and_marks_clinical_status(self) -> None:
         markdown = generate_markdown_report(
             {
                 "case_id": "sample",
-                "model_3d": "pretrained_monai_swinunetr",
+                "model_3d": "user_supplied_monai_segresnet",
                 "segmentation3d_metadata": {
-                    "region_order": ["ET", "TC", "WT"],
+                    "region_order": ["TC", "WT", "ET"],
                     "inference": {"threshold": 0.5},
-                    "mask_voxel_count": {"ET": 3, "TC": 8, "WT": 12},
+                    "mask_voxel_count": {"TC": 8, "WT": 12, "ET": 3},
                 },
                 "stages": {
                     "3D segmentation": {"status": "completed", "reasons": []},
@@ -252,10 +258,33 @@ class RegistryAndReportTests(unittest.TestCase):
             }
         )
 
-        self.assertIn("Output order: ['ET', 'TC', 'WT']", markdown)
-        self.assertIn("Mask voxel counts: {'ET': 3, 'TC': 8, 'WT': 12}", markdown)
+        self.assertIn("Output order: ['TC', 'WT', 'ET']", markdown)
+        self.assertIn("Mask voxel counts: {'TC': 8, 'WT': 12, 'ET': 3}", markdown)
         self.assertIn("RC: unavailable", markdown)
         self.assertIn("Clinical performance: unvalidated", markdown)
+
+    def test_corridor_outputs_are_rendered_as_a_markdown_table(self) -> None:
+        markdown = generate_markdown_report(
+            {
+                "risk_mapping": {
+                    "corridors": [
+                        {
+                            "corridor_name": "Candidate A",
+                            "path_length_mm": 44.2,
+                            "mean_risk": 0.18,
+                            "maximum_risk": 0.31,
+                            "tract_risk": 0.0,
+                            "tumor_coverage": 0.91,
+                            "composite_cost": 0.2,
+                        }
+                    ]
+                },
+                "stages": {"Surgical corridors": {"status": "completed"}},
+            }
+        )
+
+        self.assertIn("| Candidate corridor | Length (mm) | Mean risk |", markdown)
+        self.assertIn("| Candidate A | 44.2 | 0.18 | 0.31 | 0.0 | 0.91 | 0.2 |", markdown)
 
     def test_final_pdf_includes_modality_and_segmentation_visualizations(self) -> None:
         image = np.arange(48, dtype=np.float32).reshape(6, 8)
@@ -349,7 +378,85 @@ class RegistryAndReportTests(unittest.TestCase):
         self.assertIn("no 3D tumor mask", context["provenance"]["tumor_volume"])
         self.assertEqual(context["segmentation_2d"]["foreground_area"], "12 pixels")
 
-    def test_chat_readiness_reports_missing_assets_and_local_services(self) -> None:
+    def test_rag_context_combines_modalities_2d_and_3d_risk_outputs_without_masks(self) -> None:
+        modality_inputs = {
+            key: {"label": key, "uploaded": True, "shape": [4, 5, 6]}
+            for key in ("t2f", "t1n", "t1c", "t2w")
+        }
+        context = build_patient_context(
+            "patient-001",
+            {
+                "segmentation": {
+                    "status": "completed",
+                    "architecture": "2D model",
+                    "foreground_area": "12 pixels",
+                },
+                "classification": {
+                    "status": "completed",
+                    "predicted_class": "glioma",
+                    "scores": {"glioma": 2.0},
+                    "probabilities": {"glioma": 0.8},
+                },
+                "stages": {},
+            },
+            {
+                "region_masks": {"WT": np.ones((2, 2, 2), dtype=np.uint8)},
+                "output_spacing_mm": [1.0, 1.0, 1.0],
+                "modalities": ["t2f", "t1n", "t1c", "t2w"],
+                "model_3d": "SegResNet",
+                "segmentation3d_metadata": {
+                    "region_order": ["TC", "WT", "ET"],
+                    "mask_voxel_count": {"WT": 8},
+                },
+                "risk_mapping": {
+                    "risk_map": np.full((2, 2, 2), 0.3, dtype=np.float32),
+                    "brain_mask": np.ones((2, 2, 2), dtype=bool),
+                    "active_weights": {"anatomical": 1.0},
+                    "evidence_status": {"dti": "unavailable"},
+                    "qc": {"dti_available": False},
+                    "structures": ["example structure"],
+                    "corridors": [{"corridor_id": 1, "mean_risk": 0.2}],
+                },
+                "stages": {
+                    "surgical risk mapping": {"status": "completed"},
+                },
+            },
+            modality_inputs,
+        )
+
+        self.assertEqual(context["patient_label"], "Patient 001")
+        self.assertEqual(
+            context["available_modalities"],
+            ["t2f", "t1n", "t1c", "t2w", "SynthSeg anatomical labels"],
+        )
+        self.assertEqual(context["segmentation_2d"]["foreground_area"], "12 pixels")
+        self.assertEqual(context["classification"], "glioma")
+        self.assertEqual(context["classification_results"]["probabilities"], {"glioma": 0.8})
+        self.assertEqual(context["segmentation_3d"]["mask_voxel_count"], {"WT": 8})
+        self.assertEqual(context["candidate_corridors"], [{"corridor_id": 1, "mean_risk": 0.2}])
+        self.assertIn("2D SEGMENTATION INFERENCE:", context["analysis_results_text"])
+        self.assertIn('"foreground_area": "12 pixels"', context["analysis_results_text"])
+        self.assertIn("SURGICAL RISK MAPPING INFERENCE:", context["analysis_results_text"])
+        self.assertIn('"mean_risk": 0.2', context["analysis_results_text"])
+        self.assertNotIn("region_masks", context)
+        self.assertNotIn("risk_map", context)
+        self.assertEqual(context["provenance"]["raw_mri_sent"], False)
+        self.assertEqual(
+            context["provenance"]["model_findings_source"],
+            "active MRI inference results only",
+        )
+        self.assertTrue(context["provenance"]["synthetic_history_is_not_an_inference"])
+
+    def test_rag_context_does_not_invent_findings_without_inference_outputs(self) -> None:
+        context = build_patient_context("patient-001", {"stages": {}})
+
+        self.assertIn("Fictional demonstration history", context["patient_history"])
+        self.assertIsNone(context["tumor_volume_ml"])
+        self.assertNotIn("classification", context)
+        self.assertNotIn("risk_score", context)
+        self.assertNotIn("candidate_corridors", context)
+
+    def test_chat_readiness_reports_missing_assets_and_gemini_configuration(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             chunks_path = root / "chunks.json"
@@ -357,6 +464,7 @@ class RegistryAndReportTests(unittest.TestCase):
             with (
                 patch.object(rag_adapter, "RAG_CHUNKS_PATH", chunks_path),
                 patch.object(rag_adapter, "RAG_VECTOR_MANIFEST", manifest_path),
+                patch.dict("os.environ", {"GEMINI_API_KEY": "replace-with-your-key"}),
                 patch(
                     "requests.get",
                     side_effect=requests.ConnectionError("service unavailable"),
@@ -367,16 +475,16 @@ class RegistryAndReportTests(unittest.TestCase):
         self.assertFalse(status["ready"])
         self.assertFalse(status["chunks_available"])
         self.assertEqual(status["api_status"], "unavailable")
-        self.assertEqual(status["ollama_status"], "unavailable")
+        self.assertEqual(status["gemini_status"], "missing API key")
         self.assertTrue(any("chunks are missing" in item for item in status["missing"]))
         self.assertTrue(any("RAG API is not reachable" in item for item in status["missing"]))
-        self.assertTrue(any("Ollama LLM provider is unreachable" in item for item in status["missing"]))
+        self.assertTrue(any("Gemini API key is not configured" in item for item in status["missing"]))
         self.assertTrue(any("build_knowledge_base.py" in item for item in status["setup"]))
 
     def test_chat_readiness_rejects_remote_plain_http_without_request(self) -> None:
         with patch(
             "requests.get",
-            side_effect=requests.ConnectionError("Ollama not running"),
+            side_effect=requests.ConnectionError("RAG API not running"),
         ) as request:
             status = rag_adapter.rag_readiness("http://example.invalid:8000")
 

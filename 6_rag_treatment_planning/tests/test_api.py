@@ -10,7 +10,14 @@ def test_health():
 def test_case_schema():
     response = client.get('/api/cases/DEMO_001')
     assert response.status_code == 200
-    assert response.json()['data_type'] == 'SYNTHETIC_DEMO'
+    patient = response.json()
+    assert patient['data_type'] == 'SYNTHETIC_DEMO'
+    assert patient['patient_label'] == 'Patient 001'
+    assert patient['patient_history']
+    assert 'classification' not in patient
+    assert 'risk_score' not in patient
+    assert patient['candidate_corridors'] == []
+    assert patient['critical_structures'] == []
 
 def test_unknown_case():
     assert client.get('/api/cases/UNKNOWN').status_code == 404

@@ -52,7 +52,7 @@ def run_pipeline(
 
         from src.segmentation3d.monai_engine import (
             predict_case,
-            predict_model_card_case,
+            predict_registered_3d_case,
         )
         from src.data.brats import BraTSCase, load_input_volume
 
@@ -60,7 +60,7 @@ def run_pipeline(
         if model_spec is None:
             predict_case(checkpoint_3d, case_dir, output_dir)
         else:
-            predict_model_card_case(
+            predict_registered_3d_case(
                 checkpoint_3d, case_dir, output_dir, model_spec
             )
         prediction_metadata = json.loads(
