@@ -183,6 +183,63 @@ Creates PyTorch DataLoader
 3. **Add Validation** - Separate val/test splits
 4. **Evaluate Metrics** - Dice score, Hausdorff distance
 
+### Interactive 3D case viewer (clinician view)
+
+The V8 risk-map pipeline writes a self-contained HTML viewer (open it in a
+current browser; no internet needed) with:
+
+- the case MRI, supplied tumor annotation, and surgical-risk volume in 3D;
+- candidate approach corridors (entry point to tumor centre) as toggleable 3D
+  paths, with route length and average/peak map score;
+- named structures and white-matter tracts within 10 mm of each route, and
+  optional structure clouds near the tumor (limited to the supplied SynthSeg
+  labels and tract masks);
+- linked axial, coronal and sagittal slice views with the tumor outline and
+  risk overlay (click or drag to move through the scan);
+- a Layers panel to show or hide each item.
+
+Corridors are written by the pipeline to `corridor_paths.json`; they are
+research candidates found by a risk-weighted path search, are not ranked, and
+are not a surgical plan. Vessels and functional imaging are not modelled unless
+supplied. The uploaded-case patient summary includes a plain-language table of
+the same routes.
+
+To build the view from existing risk-map outputs:
+
+```powershell
+python -m pipeline.risk_report_3d `
+  --config config_v7.json `
+  --risk-map outputs\V7_VALIDATED\enhanced_risk_map.nii.gz `
+  --output outputs\V8_CORRIDORS\risk_3d_viewer.html
+```
+
+The V8 pipeline also generates `risk_3d_viewer.html` after its risk map,
+including corridors and structure overlays. (The standalone command above
+adds corridors when `corridor_paths.json` and `candidate_corridors.nii.gz` are
+present, but does not draw structure clouds.) The viewer rejects shape or
+affine mismatches rather than silently resampling overlays. Risk thresholds and
+scores remain research-only and are not clinically validated.
+
+### Shareable sample report
+
+To produce one self-contained HTML file (patient details, tumor details,
+nearby structures, candidate routes, and the interactive 3D viewer embedded)
+for the sample case, run the V8 pipeline and then:
+
+```powershell
+.\.venv\Scripts\python.exe pipeline\build_sample_report.py
+```
+
+Output goes to `outputs\sample_report\` (`sample_case_report.html`, plus the
+standalone `3d_case_viewer.html`). Optional `--age`, `--sex` and `--history`
+fill the patient details; nothing is invented when they are omitted. A tumor
+classification is shown only when you supply one with its source
+(`--classification "..." --classification-source "..."`, optional
+`--classification-date`); otherwise the report states "Not available". The
+software does not determine tumor type or grade and never labels a supplied
+classification as its own result. Tumor side and size are estimated from the
+mask and image geometry, and the file is about 14 MB.
+
 ## Notes
 
 - **Memory Efficient**: Processes data on-the-fly, no caching
