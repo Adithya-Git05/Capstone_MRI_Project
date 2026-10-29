@@ -29,7 +29,7 @@ class RAGPipeline:
                 raise ValueError("RAG context case_id does not match the query case_id.")
             patient = validated.model_dump(exclude_none=True)
         retrieval_query = expanded_query(question, patient)
-        candidates = self.retriever.search(retrieval_query, top_k=max(TOP_K * 4, 20))
+        candidates = self.retriever.search(retrieval_query, top_k=max(TOP_K * 2, 10))
         ranked = self.reranker.rerank(retrieval_query, candidates, top_k=len(candidates))
         selected, retrieval_diagnostics = filter_relevant(
             retrieval_query, ranked, patient, RELEVANCE_THRESHOLD, MAX_CHUNKS_PER_PAPER, TOP_K
@@ -50,21 +50,7 @@ class RAGPipeline:
             )
             for item in evidence
         ]
-        if not evidence:
-            answer = {
-                "summary": "Insufficient sufficiently relevant evidence was retrieved for this question.",
-                "patient_findings": [],
-                "risk_interpretation": "No patient-specific risk interpretation was generated.",
-                "corridor_comparison": [],
-                "evidence_supported_considerations": [],
-                "uncertainties": ["The retrieved literature did not meet the configured relevance threshold."],
-                "missing_information": patient.get("missing_modalities", []),
-                "limitations": ["This automated retrieval result is not clinical validation."],
-                "citations": [],
-            }
-            llm_warning = "Gemini was not called because no sufficiently relevant evidence passed filtering."
-        else:
-            answer, llm_warning = generate_response(question, patient, evidence)
+        answer, llm_warning = generate_response(question, patient, evidence)
         warnings.extend(patient_warnings(patient))
         if llm_warning:
             warnings.append(llm_warning)

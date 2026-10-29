@@ -1,0 +1,132 @@
+"""Build the checked-in Colab notebook from ordered source cells."""
+import json
+from pathlib import Path
+
+cells = []
+def md(s): cells.append({"cell_type":"markdown","metadata":{},"source":s.replace("\\n", "\n").splitlines(True)})
+def code(s):
+    s = s.replace("response\\n'+json.dumps", "response'+chr(10)+json.dumps")
+    cells.append({"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":s.replace("\\n", "\n").splitlines(True)})
+
+md("""# Brain Tumor Capstone: Full Demo\n\nResearch demonstration that connects the repository's trained BRISC 2D models, the supplied SwinUNETR checkpoint contract, anatomy/risk prerequisites, and local RAG implementation. Outputs are experimental and are not clinical advice. Run top to bottom in Google Colab. Four aligned 3D modalities are required; one image is accepted only for the separately trained 2D path.\n\n**Stages report their own status.** A failed or skipped prerequisite does not create a substitute result. No patient scans are included in this notebook or source snapshot.""")
+md("## A. Runtime, hardware, source and dependencies")
+code("""import os, sys, json, shutil, subprocess, platform, resource, time, zipfile\nfrom pathlib import Path\nIN_COLAB = 'google.colab' in sys.modules\nprint('Colab:', IN_COLAB, '| Python:', platform.python_version())\ntry:\n import psutil; print('System RAM GiB:', round(psutil.virtual_memory().total/2**30, 2))\nexcept Exception: print('System RAM: psutil unavailable')\nif shutil.which('nvidia-smi'):\n print(subprocess.run(['nvidia-smi','--query-gpu=name,memory.total','--format=csv,noheader'],capture_output=True,text=True).stdout)\nelse: print('GPU: unavailable; CPU inference will be used where supported')\n""")
+code("""# Colab: clone your repository, or upload the provided clean source snapshot ZIP.\nREPO_URL = 'https://github.com/REPLACE_WITH_YOUR_ACCOUNT/Capstone_MRI_Project.git'\nPROJECT = Path('/content/Capstone_MRI_Project' if IN_COLAB else Path.cwd()).resolve()\nif IN_COLAB and not (PROJECT/'README.md').is_file():\n from google.colab import files as colab_files\n if 'REPLACE_WITH_YOUR_ACCOUNT' not in REPO_URL:\n  subprocess.run(['git','clone',REPO_URL,str(PROJECT)],check=True)\n else:\n  print('Upload Capstone_Source_Snapshot.zip from the project deliverables.')\n  uploaded=colab_files.upload(); archives=[name for name in uploaded if name.lower().endswith('.zip')]\n  if len(archives)!=1: raise ValueError('Upload exactly one source snapshot ZIP.')\n  with zipfile.ZipFile(archives[0]) as archive: archive.extractall(PROJECT)\nos.chdir(PROJECT)\nprint('Project:', PROJECT)\n""")
+code("""# Keep Colab's preinstalled torch intact; install project runtime requirements around it.\n%pip install -q 'nibabel>=5,<6' 'monai==1.4.0' 'scipy>=1.10' 'matplotlib>=3.7' 'Pillow>=10' 'PyYAML>=6' 'reportlab>=4' 'psutil>=5.9' 'huggingface_hub>=0.24'\n%pip install -q -r 6_rag_treatment_planning/requirements.txt\n""")
+code("""import torch, numpy as np, matplotlib.pyplot as plt, nibabel as nib\nfrom IPython.display import display, Markdown, Image\nfrom google.colab import files as colab_files if IN_COLAB else (None)\n""")
+# Replace invalid conditional import syntax with a safe block.
+cells[-1]["source"] = """import torch, numpy as np, matplotlib.pyplot as plt, nibabel as nib\nfrom IPython.display import display, Markdown, Image\nif IN_COLAB:\n from google.colab import files as colab_files\nprint('torch',torch.__version__,'| MONAI',__import__('monai').__version__,'| device', 'cuda' if torch.cuda.is_available() else 'cpu')\n""".splitlines(True)
+md("## Persistent artifacts (optional Google Drive)")
+code("""USE_DRIVE = False\nif IN_COLAB and USE_DRIVE:\n from google.colab import drive\n drive.mount('/content/drive')\n ARTIFACTS = Path('/content/drive/MyDrive/Capstone_Demo_Artifacts')\nelse: ARTIFACTS = Path('/content/Capstone_Demo_Artifacts' if IN_COLAB else './Capstone_Demo_Artifacts').resolve()\nARTIFACTS.mkdir(parents=True,exist_ok=True)\n""")
+md("## B. Upload and validate one study")
+code("""# Upload individual NIfTI files or one ZIP. ZIP members are selected by explicit T1/T1ce/T2/FLAIR token, never upload order.\nUPLOAD_DIR = ARTIFACTS/'input'; UPLOAD_DIR.mkdir(exist_ok=True)\nif IN_COLAB:\n uploaded = colab_files.upload()\n for name,data in uploaded.items(): (UPLOAD_DIR/name).write_bytes(data)\nelse: print('Place .nii/.nii.gz files in',UPLOAD_DIR)\nfor z in UPLOAD_DIR.glob('*.zip'):\n with zipfile.ZipFile(z) as archive: archive.extractall(UPLOAD_DIR/'unzipped')\n""")
+code("""# Edit paths explicitly. Filenames can be mapped here regardless of their uploaded order.\nSTUDY_ID = 'demo-study'\nMODALITY_PATHS = {'T1':'', 'T1ce':'', 'T2':'', 'FLAIR':''}\n# Example: MODALITY_PATHS['T1'] = str(UPLOAD_DIR/'case_T1.nii.gz')\n""")
+code("""sys.path.insert(0,str(PROJECT/'notebooks'))\nfrom colab_demo_helpers import validate_nifti_study, sha256, write_json, make_artifact_zip\nmodule_status = {k:{'status':'Skipped because a prerequisite is missing'} for k in ['input','seg2d','class2d','seg3d','gradcam','anatomy_registration','risk','corridor','rag','report']}\ninput_meta = None\ntry:\n input_meta = validate_nifti_study(MODALITY_PATHS)\n module_status['input']={'status':'Completed',**input_meta}\n display(Markdown('**Input validation: Completed.** All four explicit modality files have matching dimensions and affine.'))\nexcept Exception as e:\n module_status['input']={'status':'Failed','error':str(e)}\n display(Markdown('**Input validation: Failed.** '+str(e)))\n""")
+md("## Checkpoints and configuration provenance")
+code("""CHECKPOINTS = {\n 'seg2d': PROJECT/'3_2d_segmentation/outputs/segmentation2d/02_attention_boundary_unet_import_20261019_1209/best.pt',\n 'class2d': PROJECT/'4_2d_classification/outputs/classification/20261019_104128_seed2026/best.pt',\n 'seg3d': PROJECT/'2_3d_segmentation/outputs/segmentation3d/SwinUNETR/best.pth'}\nfor k,p in CHECKPOINTS.items(): print(k, 'present' if p.is_file() else 'MISSING', p)\n""")
+md("## C. 2D segmentation (BRISC attention U-Net)")
+code("""# The trained BRISC checkpoint expects a 2D grayscale slice, resize 256x256, [-1,1], sigmoid >=0.5.\nif not CHECKPOINTS['seg2d'].is_file(): module_status['seg2d']={'status':'Skipped because a prerequisite is missing','reason':'best.pt missing'}\nelif not MODALITY_PATHS.get('T1'): module_status['seg2d']={'status':'Skipped because a prerequisite is missing','reason':'select a 2D NIfTI slice in MODALITY_PATHS[T1]'}\nelse:\n try:\n  import torch.nn.functional as F\n  sys.path.insert(0,str(PROJECT/'3_2d_segmentation')); sys.path.insert(0,str(PROJECT/'1_data_and_preprocessing'))\n  from src.segmentation2d.model_attention import BRISCAttentionUNet\n  ck=torch.load(CHECKPOINTS['seg2d'],map_location='cpu',weights_only=True)\n  required={'model_state','model_config','image_size','mask_threshold'}\n  if not required.issubset(ck): raise ValueError(f'Checkpoint missing keys: {sorted(required-set(ck))}')\n  model=BRISCAttentionUNet(base_channels=int(ck['model_config'].get('base_channels',16)))\n  model.load_state_dict(ck['model_state'],strict=True); model.eval().to('cuda' if torch.cuda.is_available() else 'cpu')\n  vol=nib.load(MODALITY_PATHS['T1']); arr=vol.get_fdata(dtype=np.float32); sl=arr[:,:,arr.shape[2]//2]\n  lo,hi=np.percentile(sl[np.isfinite(sl)],(1,99)); disp=np.clip((sl-lo)/max(hi-lo,1e-8),0,1)\n  x=torch.from_numpy(disp.astype('float32'))[None,None]; x=F.interpolate(x,size=(int(ck['image_size']),)*2,mode='bilinear',align_corners=False); x=(x-.5)/.5\n  with torch.inference_mode(): prob=torch.sigmoid(model(x.to(next(model.parameters()).device)))[0,0].cpu().numpy()\n  pred=prob>=.5; fig,ax=plt.subplots(1,3,figsize=(12,4)); ax[0].imshow(disp,cmap='gray'); ax[0].set_title('T1 mid-slice'); ax[1].imshow(prob,cmap='magma'); ax[1].set_title('Probability'); ax[2].imshow(x[0,0].numpy()*.5+.5,cmap='gray'); ax[2].imshow(pred,alpha=.4,cmap='Reds'); ax[2].set_title('Predicted foreground'); [a.axis('off') for a in ax]; plt.show()\n  plt.imsave(ARTIFACTS/'seg2d_overlay.png',pred,cmap='gray')\n  module_status['seg2d']={'status':'Completed','model':'BRISCAttentionUNet','sha256':sha256(CHECKPOINTS['seg2d']),'image_size':int(ck['image_size']),'mask_threshold':.5,'foreground_pixels':int(pred.sum()),'input_slice':'T1 axial midpoint'}\n except Exception as e: module_status['seg2d']={'status':'Failed','error':repr(e)}; print('2D segmentation failed:',repr(e))\n""")
+md("## D. 2D classification (BRISC four-class model)")
+code("""# Run the actual BRISC classifier on an explicitly selected NIfTI slice as an out-of-domain research demonstration.\nif not CHECKPOINTS['class2d'].is_file(): module_status['class2d']={'status':'Skipped because a prerequisite is missing','reason':'best.pt missing'}\nelif not MODALITY_PATHS.get('T1'): module_status['class2d']={'status':'Skipped because a prerequisite is missing','reason':'select T1 NIfTI'}\nelse:\n try:\n  from PIL import Image\n  sys.path.insert(0,str(PROJECT/'4_2d_classification')); sys.path.insert(0,str(PROJECT/'1_data_and_preprocessing'))\n  from src.classification.engine import _make_model\n  from src.data.brisc import BRISCClassificationDataset, ClassificationRecord, CLASS_NAMES\n  ck=torch.load(CHECKPOINTS['class2d'],map_location='cpu',weights_only=True)\n  if ck.get('class_names')!=list(CLASS_NAMES): raise ValueError('Checkpoint label order mismatch')\n  cfg={'model':ck['model_config'],'image_size':int(ck['image_size']),'resize_mode':ck.get('preprocessing',{}).get('resize_mode','stretch'),'augmentation':ck.get('preprocessing',{}).get('augmentation',{})}\n  model=_make_model(cfg); model.load_state_dict(ck['model_state'],strict=True); device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'); model.to(device).eval()\n  arr=nib.load(MODALITY_PATHS['T1']).get_fdata(dtype=np.float32); sl=arr[:,:,arr.shape[2]//2]; lo,hi=np.percentile(sl[np.isfinite(sl)],(1,99)); gray=np.uint8(np.clip((sl-lo)/max(hi-lo,1e-8),0,1)*255)\n  image_path=ARTIFACTS/'classifier_input.png'; Image.fromarray(gray).save(image_path)\n  tensor,_=BRISCClassificationDataset([ClassificationRecord(image_path,0)],cfg['image_size'],resize_mode=cfg['resize_mode'],augment=False,augmentation=cfg['augmentation'])[0]\n  temp=float(ck.get('temperature',1.0))\n  with torch.inference_mode(): prob=torch.softmax(model(tensor[None].to(device))/temp,dim=1)[0].cpu().numpy()\n  result={name:float(prob[i]) for i,name in enumerate(CLASS_NAMES)}; print('Predicted BRISC class:',CLASS_NAMES[int(prob.argmax())]); print('Scores (out-of-domain for a patient NIfTI slice):',result)\n  module_status['class2d']={'status':'Completed','model':'BRISC custom CNN','checkpoint_sha256':sha256(CHECKPOINTS['class2d']),'class_order':list(CLASS_NAMES),'temperature':temp,'scores':result,'input':'T1 axial midpoint resampled to BRISC model preprocessing','interpretation':'Out-of-domain demonstration only; scores are not patient-level diagnostic probabilities.','clinical_validation':'Not clinically validated'}\n except Exception as e: module_status['class2d']={'status':'Failed','error':repr(e)}; print('Classification failed:',repr(e))\n""")
+md("## E. 3D SwinUNETR segmentation (model-card contract)")
+code("""# Model-card contract supplied with this task: input [T1,T1ce,T2,FLAIR], outputs [ET,TC,WT], feature_size=48, nonzero per-channel z-score, sigmoid >=0.5, ROI=128^3, overlap=.7.\n# The locally supplied checkpoint records only epoch/state_dict/best_acc. Strict architecture load below is the compatibility gate.\n""")
+code("""if input_meta is None:\n module_status['seg3d']={'status':'Skipped because a prerequisite is missing','reason':'four aligned modalities not validated'}\nelif not CHECKPOINTS['seg3d'].is_file(): module_status['seg3d']={'status':'Skipped because a prerequisite is missing','reason':'checkpoint absent'}\nelse:\n try:\n  from monai.networks.nets import SwinUNETR\n  from monai.inferers import sliding_window_inference\n  ck=torch.load(CHECKPOINTS['seg3d'],map_location='cpu',weights_only=False) # local project checkpoint; contains optimizer state\n  if not isinstance(ck,dict) or 'state_dict' not in ck: raise ValueError('Expected state_dict checkpoint')\n  model=SwinUNETR(img_size=(128,128,128),in_channels=4,out_channels=3,feature_size=48,use_checkpoint=True)\n  state=ck['state_dict']\n  if state and next(iter(state)).startswith('module.'): state={k.removeprefix('module.'):v for k,v in state.items()}\n  model.load_state_dict(state,strict=True); device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'); model.to(device).eval()\n  arrays=[]\n  for name in ['T1','T1ce','T2','FLAIR']:\n   a=nib.load(MODALITY_PATHS[name]).get_fdata(dtype=np.float32); nz=a!=0\n   if not nz.any(): raise ValueError(f'{name}: all-zero modality')\n   mu,sd=float(a[nz].mean()),float(a[nz].std()); arrays.append(np.where(nz,(a-mu)/max(sd,1e-8),0).astype('float32'))\n  vol=np.stack(arrays); x=torch.from_numpy(vol)[None]; roi=(128,128,128)\n  # Reflection/padding is explicit for inputs smaller than the checkpoint ROI.\n  pads=[]\n  for n in reversed(x.shape[-3:]): pads.extend([0,max(0,roi[len(pads)//2]-n)])\n  if any(pads): x=F.pad(x,pads)\n  start=time.time()\n  with torch.inference_mode(): logits=sliding_window_inference(x.to(device),roi,1,model,overlap=.7)\n  probs=torch.sigmoid(logits)[0].cpu().numpy(); pred=probs>=.5; elapsed=time.time()-start\n  pred=pred[:,:vol.shape[1],:vol.shape[2],:vol.shape[3]]\n  aff=np.asarray(input_meta['affine']); spacing=np.linalg.norm(aff[:3,:3],axis=0); regions=['ET','TC','WT']; voxel_mm3=float(np.prod(spacing)); vols={}\n  for i,name in enumerate(regions):\n   vols[name]={'voxels':int(pred[i].sum()),'volume_mm3':float(pred[i].sum()*voxel_mm3)}\n   nib.save(nib.Nifti1Image(pred[i].astype('uint8'),aff),str(ARTIFACTS/f'{name}.nii.gz'))\n  for i,name in enumerate(regions): nib.save(nib.Nifti1Image(probs[i].astype('float32'),aff),str(ARTIFACTS/f'{name}_probability.nii.gz'))\n  z=vol.shape[-1]//2; fig,ax=plt.subplots(1,4,figsize=(14,4)); ax[0].imshow(vol[0,:,:,z],cmap='gray'); ax[0].set_title('T1');\n  for j,n in enumerate(regions,1): ax[j].imshow(vol[0,:,:,z],cmap='gray'); ax[j].imshow(pred[j-1,:,:,z],alpha=.45,cmap='autumn'); ax[j].set_title(n)\n  [a.axis('off') for a in ax]; plt.show()\n  module_status['seg3d']={'status':'Completed','model':'MONAI SwinUNETR','contract_source':'user-supplied Hugging Face model card','checkpoint_sha256':sha256(CHECKPOINTS['seg3d']),'output_order':regions,'threshold':.5,'inference_seconds':elapsed,'device':str(device),'regions':vols,'clinical_validation':'Not clinically validated'}\n except Exception as e: module_status['seg3d']={'status':'Failed','error':repr(e)}; print('3D segmentation failed (dependent stages remain gated):',repr(e))\n""")
+md("## F. Grad-CAM")
+code("""# The checked-in Grad-CAM supports classifier/selected 2D paths; it documents no verified SwinUNETR target.\nmodule_status['gradcam']={'status':'Not implemented for selected checkpoint','reason':'No verified target layer or target aggregation for this model/checkpoint. No decorative heatmap generated.'}\nprint(module_status['gradcam'])\n""")
+md("## G–H. SynthSeg, registration, V8 risk and corridor planning")
+code("""# Actual SynthSeg wrapper invokes Docker FreeSurfer 8.2.0 and requires a separately supplied FreeSurfer license.\nmodule_status['anatomy_registration']={'status':'Skipped because a prerequisite is missing','reason':'No licensed SynthSeg runtime is bundled; wrapper uses Docker and FS_LICENSE. The project has no general registration transform implementation to align arbitrary uploaded anatomical labels.'}\nmodule_status['risk']={'status':'Skipped because a prerequisite is missing','reason':'V8 requires aligned patient MRI, tumor mask, SynthSeg labels and strict affine QC. It has no configured V8 risk template for this arbitrary upload. Atlas priors are not patient-specific anatomy.'}\nmodule_status['corridor']={'status':'Skipped because a prerequisite is missing','reason':'V8 corridor code exists, but needs successful risk/anatomy prerequisites; actual input data are absent.'}\nprint(json.dumps({k:module_status[k] for k in ['anatomy_registration','risk','corridor']},indent=2))\n""")
+md("## I. Retrieval-augmented evidence synthesis")
+code("""RAG_ROOT=PROJECT/'6_rag_treatment_planning'; KB=RAG_ROOT/'knowledge_base/chunks.json'\nquestion=input('Evidence question (blank to skip): ').strip()\nif not question: module_status['rag']={'status':'Skipped because a prerequisite is missing','reason':'No question supplied'}\nelif not KB.is_file(): module_status['rag']={'status':'Skipped because a prerequisite is missing','reason':'knowledge_base/chunks.json absent; source docs say corpus must be downloaded and built'}\nelse:\n try:\n  sys.path.insert(0,str(RAG_ROOT)); os.chdir(RAG_ROOT)\n  from src.rag_pipeline import RAGPipeline\n  rag=RAGPipeline(); result=rag.query(question,case_id=STUDY_ID,patient_context={'case_id':STUDY_ID,'missing_modalities':[]})\n  display(Markdown('### Retrieved evidence and response\\n'+json.dumps(result,indent=2,default=str)))\n  (ARTIFACTS/'rag_result.json').write_text(json.dumps(result,indent=2,default=str))\n  module_status['rag']={'status':'Completed','warning':result.get('warnings',[]),'retrieved_count':len(result.get('retrieved_evidence',[])),'citation_validation':result.get('verification',{})}\n  os.chdir(PROJECT)\n except Exception as e: module_status['rag']={'status':'Failed','error':repr(e)}; os.chdir(PROJECT); print('RAG failed:',repr(e))\n""")
+md("## J. Consolidated PDF, JSON, ZIP and downloads")
+code("""from reportlab.lib.pagesizes import letter\nfrom reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as PDFImage, Table, TableStyle\nfrom reportlab.lib import colors\nfrom reportlab.lib.styles import getSampleStyleSheet\n""")
+code("""# Include actual generated outputs only. Skipped stages are described without fabricated visuals or metrics.\nreport_path=ARTIFACTS/'Capstone_Report.pdf'; styles=getSampleStyleSheet(); story=[Paragraph('Brain Tumor Capstone Research Demo',styles['Title']),Paragraph(f'Study ID: {STUDY_ID} | Generated: {time.ctime()}',styles['Normal']),Spacer(1,12),Paragraph('Experimental research output. Not clinically validated; not for treatment decisions.',styles['Heading2'])]\nfor name,info in module_status.items():\n story += [Paragraph(name.replace('_',' ').title()+': '+str(info.get('status','Skipped')),styles['Heading2']),Paragraph(str(info),styles['BodyText']),Spacer(1,6)]\nfor p in [ARTIFACTS/'seg2d_overlay.png']:\n if p.exists(): story.append(PDFImage(str(p),width=420,height=140))\nif input_meta: story.append(Paragraph('Input metadata',styles['Heading2'])); story.append(Paragraph(json.dumps(input_meta,default=str),styles['Code']))\nSimpleDocTemplate(str(report_path),pagesize=letter).build(story)\nwrite_json(ARTIFACTS/'module_status.json',{'study_id':STUDY_ID,'modules':module_status,'software':{'python':platform.python_version(),'torch':torch.__version__,'numpy':np.__version__}})\nzip_path=make_artifact_zip(ARTIFACTS,ARTIFACTS/'Capstone_Artifacts.zip')\nprint('PDF bytes:',report_path.stat().st_size,'ZIP bytes:',zip_path.stat().st_size)\n""")
+code("""if IN_COLAB:\n colab_files.download(str(report_path)); colab_files.download(str(ARTIFACTS/'module_status.json')); colab_files.download(str(zip_path))\nelse: print('Artifacts:',ARTIFACTS)\n""")
+md("## Execution and validation status\n\nThis notebook has not been run on a Colab GPU. The checked-in tests and notebook structural checks are reported in `COLAB_IMPLEMENTATION_AUDIT.md`. A genuine patient study is not included; clinical performance validation requires a separately supplied, authorized study and expert review.")
+
+def insert_after(match, source):
+    index = next(i for i, cell in enumerate(cells) if cell["cell_type"] == "code" and match in "".join(cell["source"]))
+    cells.insert(index + 1, {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":source.replace("\\n","\n").splitlines(True)})
+
+insert_after("print('Project:', PROJECT)", """import src
+for _stage in ['1_data_and_preprocessing','2_3d_segmentation','3_2d_segmentation','4_2d_classification']:
+ _package_path=str(PROJECT/_stage/'src')
+ if _package_path not in src.__path__: src.__path__.append(_package_path)
+""")
+insert_after("CHECKPOINTS = {", """# 2D checkpoints are local-only and omitted from the source ZIP; these upload names are explicit.
+if IN_COLAB and (not CHECKPOINTS['seg2d'].is_file() or not CHECKPOINTS['class2d'].is_file()):
+ print('Upload seg2d_best.pt and/or class2d_best.pt if available. SwinUNETR is fetched from Hugging Face if absent.')
+ uploaded=colab_files.upload()
+ names={'seg2d_best.pt':'seg2d','class2d_best.pt':'class2d'}
+ for name,data in uploaded.items():
+  if name in names:
+   target=ARTIFACTS/name; target.write_bytes(data); CHECKPOINTS[names[name]]=target
+if not CHECKPOINTS['seg3d'].is_file():
+ from huggingface_hub import hf_hub_download
+ try:
+  CHECKPOINTS['seg3d']=Path(hf_hub_download(repo_id='janiharman/swinunetr-pretrained-brats2025',filename='model_best_fold_0.pth',revision='main',cache_dir='/content/hf_cache' if IN_COLAB else None))
+  print('Downloaded cached 754 MB model-card artifact; Hub verifies transfer.')
+ except Exception as e: print('SwinUNETR download unavailable:',repr(e))
+""")
+
+for _cell in cells:
+    if _cell["cell_type"] != "code":
+        continue
+    _src = "".join(_cell["source"])
+    _src = _src.replace(
+        "STUDY_ID = 'demo-study'\nMODALITY_PATHS =",
+        "STUDY_ID = 'demo-study'\nINPUT_PREPROCESSING_CONFIRMED = False  # Set True only if these are one skull-stripped, co-registered study.\nMODALITY_PATHS =",
+    )
+    _src = _src.replace(
+        "if input_meta is None:\n module_status['seg3d']",
+        "if input_meta is None or not INPUT_PREPROCESSING_CONFIRMED:\n module_status['seg3d']",
+    )
+    _src = _src.replace(
+        "'reason':'four aligned modalities not validated'",
+        "'reason':'four aligned modalities not validated, or skull-stripped/co-registered same-study preprocessing was not confirmed'",
+    )
+    _src = _src.replace(
+        "%pip install -q -r 6_rag_treatment_planning/requirements.txt",
+        "%pip install -q 'rank-bm25>=0.2' 'python-dotenv>=1' 'pydantic>=2.7' 'httpx>=0.27' 'PyMuPDF>=1.24'",
+    )
+    _src = _src.replace(
+        "ck=torch.load(CHECKPOINTS['seg3d'],map_location='cpu',weights_only=False) # local project checkpoint; contains optimizer state",
+        """import codecs, collections
+  _safe=[(np.core.multiarray.scalar,'numpy._core.multiarray.scalar'),np.dtype,np.ndarray,collections.OrderedDict,codecs.encode]
+  with torch.serialization.safe_globals(_safe): ck=torch.load(CHECKPOINTS['seg3d'],map_location='cpu',weights_only=True)""",
+    )
+    _src = _src.replace(
+        "(np.core.multiarray.scalar,'numpy._core.multiarray.scalar'),np.dtype,np.ndarray,",
+        "(np.core.multiarray.scalar,'numpy._core.multiarray.scalar'),np.dtype,np.ndarray,type(np.dtype(np.float32)),",
+    )
+    _src = _src.replace(
+        "model=SwinUNETR(img_size=(128,128,128),in_channels=4,out_channels=3,feature_size=48,use_checkpoint=True)\n  state=ck['state_dict']",
+        "class MONAI_Swin_UNet_Generator(torch.nn.Module):\n   def __init__(self):\n    super().__init__(); self.net=SwinUNETR(img_size=(128,128,128),in_channels=4,out_channels=3,feature_size=48,use_checkpoint=True)\n   def forward(self,value): return self.net(value)\n  model=MONAI_Swin_UNet_Generator()\n  state=ck['state_dict']",
+    )
+    _src = _src.replace("Paragraph(str(info),styles['BodyText'])", "Paragraph(__import__('xml.sax.saxutils',fromlist=['escape']).escape(str(info)),styles['BodyText'])")
+    _src = _src.replace("plt.show()\n  plt.imsave(ARTIFACTS/'seg2d_overlay.png',pred,cmap='gray')", "plt.savefig(ARTIFACTS/'seg2d_overlay.png',dpi=160,bbox_inches='tight'); plt.show()")
+    _src = _src.replace("[a.axis('off') for a in ax]; plt.show()\n  module_status['seg3d']", "[a.axis('off') for a in ax]; plt.savefig(ARTIFACTS/'seg3d_regions.png',dpi=160,bbox_inches='tight'); plt.show()\n  module_status['seg3d']")
+    _src = _src.replace("for p in [ARTIFACTS/'seg2d_overlay.png']:", "for p in [ARTIFACTS/'seg2d_overlay.png',ARTIFACTS/'seg3d_regions.png',ARTIFACTS/'classification_gradcam.png']:")
+    _src = _src.replace("if p.exists(): story.append(PDFImage(str(p),width=420,height=140))", "if p.exists():\n  image=PDFImage(str(p)); image._restrictSize(420,300); story.append(image)")
+    _cell["source"] = _src.splitlines(True)
+
+for _cell in cells:
+    _src = "".join(_cell.get("source", []))
+    if "The checked-in Grad-CAM supports classifier/selected 2D paths" in _src:
+        _cell["source"] = """# Classification Grad-CAM uses the project's supported BRISCClassifier.features[14] target and predicted-class logit.
+if module_status.get('class2d',{}).get('status') == 'Completed':
+ try:
+  sys.path.insert(0,str(PROJECT))
+  from integrated_pipeline.modules.gradcam import classifier_gradcam
+  cam_input=nib.load(MODALITY_PATHS['T1']).get_fdata(dtype=np.float32)
+  cam_slice=cam_input[:,:,cam_input.shape[2]//2]
+  target_class=max(module_status['class2d']['scores'],key=module_status['class2d']['scores'].get)
+  cam, target_layer=classifier_gradcam(CHECKPOINTS['class2d'],cam_slice,target_class)
+  plt.imsave(ARTIFACTS/'classification_gradcam.png',cam)
+  display(Image(filename=str(ARTIFACTS/'classification_gradcam.png')))
+  module_status['gradcam']={'status':'Completed','model':'BRISCClassifier','target_class':target_class,'target_layer':target_layer,'scope':'single axial slice','checkpoint_sha256':sha256(CHECKPOINTS['class2d']),'note':'Explains the selected model logit; not a tumor segmentation mask.'}
+ except Exception as e: module_status['gradcam']={'status':'Failed','error':repr(e)}; print('Grad-CAM failed:',repr(e))
+else: module_status['gradcam']={'status':'Skipped because a prerequisite is missing','reason':'compatible BRISC classifier prediction/checkpoint unavailable'}
+""".splitlines(True)
+
+nb={"cells":cells,"metadata":{"colab":{"name":"Capstone_Full_Demo.ipynb","provenance":[]},"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},"language_info":{"name":"python","version":"3.10+"}},"nbformat":4,"nbformat_minor":5}
+Path(__file__).with_name('Capstone_Full_Demo.ipynb').write_text(json.dumps(nb,indent=1,ensure_ascii=False)+'\n',encoding='utf-8')

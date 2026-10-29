@@ -187,6 +187,69 @@ def _cached_rag_readiness(api_url: str) -> dict[str, Any]:
     return rag_readiness(api_url)
 
 
+def _format_cited_answer(response: dict[str, Any]) -> str:
+    answer = response.get("answer", {})
+    summary = answer.get("summary") if isinstance(answer, dict) else None
+    if not isinstance(summary, str) or not summary.strip():
+        warnings = response.get("warnings", [])
+        detail = next(
+            (item for item in warnings if isinstance(item, str) and item.strip()),
+            None,
+        )
+        if detail:
+            return f"Response generation failed: {detail}"
+        return "The analysis summary was not returned by the service."
+
+    evidence = {
+        item["chunk_id"]: item
+        for item in response.get("retrieved_evidence", [])
+        if isinstance(item, dict) and isinstance(item.get("chunk_id"), str)
+    }
+    references: list[str] = []
+    citation_numbers: dict[str, int] = {}
+    for citation in response.get("citations", []):
+        if not isinstance(citation, dict) or citation.get("status") != "verified":
+            continue
+        chunk_id = citation.get("chunk_id")
+        if (
+            not isinstance(chunk_id, str)
+            or chunk_id not in evidence
+            or chunk_id in citation_numbers
+        ):
+            continue
+        item = evidence[chunk_id]
+        metadata = item.get("metadata") or {}
+        citation_number = len(references) + 1
+        citation_numbers[chunk_id] = citation_number
+        details = [
+            str(citation.get("title") or item.get("title") or "").strip(),
+            ", ".join(metadata["authors"])
+            if isinstance(metadata.get("authors"), list)
+            else str(metadata.get("authors") or "").strip(),
+            str(metadata.get("year") or "").strip(),
+            str(metadata.get("journal") or "").strip(),
+            f"DOI: {metadata['doi']}" if metadata.get("doi") else "",
+        ]
+        reference = ". ".join(part for part in details if part)
+        citation_text = f"{reference}." if reference else ""
+        references.append(
+            f"[{citation_number}] {citation_text} (knowledge-base passage {chunk_id})"
+        )
+
+    for chunk_id, citation_number in citation_numbers.items():
+        summary = summary.replace(f"[{chunk_id}]", f"[{citation_number}]")
+    missing_markers = [
+        f"[{number}]"
+        for number in citation_numbers.values()
+        if f"[{number}]" not in summary
+    ]
+    if missing_markers:
+        summary = f"{summary.rstrip()} {' '.join(missing_markers)}"
+    if references:
+        summary = f"{summary.rstrip()}\n\nKnowledge-base sources:\n" + "\n".join(references)
+    return summary
+
+
 def _render_chat(
     chat_tab: Any,
     case_id: str,
@@ -240,50 +303,14 @@ def _render_chat(
         messages = st.session_state.setdefault(chat_key, [])
         for message in messages:
             with st.chat_message(message["role"]):
-                st.markdown(message["content"])
                 response = message.get("response")
                 if message["role"] == "assistant" and isinstance(response, dict):
                     if response.get("status") == "completed":
-                        answer = response.get("answer", {})
-                        st.caption(
-                            "Model-generated literature synthesis; check the retrieved passages "
-                            "and verified citation identifiers below."
-                        )
-                        if not answer.get("summary"):
-                            st.info(
-                                "The retrieval API returned no usable model-generated summary. "
-                                "Review the evidence and warnings below."
-                            )
-                        warnings = response.get("warnings", [])
-                        if warnings:
-                            for warning in warnings:
-                                st.warning(warning)
-                        evidence = response.get("retrieved_evidence", [])
-                        if evidence:
-                            st.markdown("**Retrieved source passages**")
-                            for index, item in enumerate(evidence, start=1):
-                                title = item.get("title") or "Untitled source"
-                                paper_id = item.get("paper_id") or "paper identifier unavailable"
-                                chunk_id = item.get("chunk_id") or "chunk identifier unavailable"
-                                metadata = item.get("metadata") or {}
-                                with st.expander(
-                                    f"{index}. {title} · {paper_id} · chunk {chunk_id}"
-                                ):
-                                    st.write(item.get("passage", "No passage supplied."))
-                                    st.caption(
-                                        " · ".join(
-                                            f"{key}: {metadata[key]}"
-                                            for key in ("authors", "year", "journal", "doi", "source_url")
-                                            if metadata.get(key)
-                                        )
-                                        or "No additional source metadata supplied."
-                                    )
-                            st.caption(
-                                "Retrieved text is literature evidence, not patient-specific "
-                                "imaging findings."
-                            )
-                        elif response.get("evidence_status") == "insufficient_evidence":
-                            st.info(response.get("evidence_warning", "No relevant evidence was retrieved."))
+                        st.text(_format_cited_answer(response))
+                    else:
+                        st.text(message["content"])
+                else:
+                    st.text(message["content"])
         prompt = st.chat_input(
             "Ask a brain-MRI research question",
             key="rag_chat_input",
@@ -340,11 +367,7 @@ def _render_chat(
                         )
                     response["status"] = "completed"
                     response["query"] = prompt
-                    answer = response.get("answer", {})
-                    assistant_content = str(
-                        answer.get("summary")
-                        or "The RAG service returned no model-generated summary. Review any retrieved passages and warnings."
-                    )
+                    assistant_content = _format_cited_answer(response)
                 except (OSError, ValueError, RuntimeError, ImportError) as error:
                     response = {"status": "failed", "reason": str(error)}
                     assistant_content = f"RAG request failed: {error}"

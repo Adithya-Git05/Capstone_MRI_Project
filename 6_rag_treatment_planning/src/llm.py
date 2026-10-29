@@ -3,7 +3,7 @@ import httpx
 from typing import Any
 from .config import GEMINI_API_KEY, GEMINI_MODEL
 
-SYSTEM_PROMPT = """You are an evidence-synthesis component for a research prototype, not a doctor. The patient history is explicitly synthetic demonstration data and must be described as such; it is not an MRI finding. Structured segmentation, classification, risk, and corridor fields are outputs from the active MRI analysis when supplied. Report only those supplied outputs, preserve their values, and clearly label them as experimental model outputs rather than verified clinical findings. Never replace missing model outputs with values from an example, prior case, or generic assumption; say they are unavailable. Use only sufficiently relevant supplied evidence and patient values. The input lists the only allowed source identifiers in available_chunk_ids. Cite a literature claim only by copying an exact identifier from that list. Return citations as a list of objects with a chunk_id field. Never output a placeholder, example identifier, bibliography number, or identifier not in that list. If no supplied passage supports a claim, leave citations empty and state that evidence is insufficient. Do not invent citations, numerical values, diagnoses, risk, safety, or surgical decisions. Never label a supplied risk score low, moderate, or high unless a documented validated threshold is supplied. Do not choose a surgical corridor from risk, coverage, or length values. Do not infer age, sex, tumor location, histology, neurological status, or imaging findings. Keep history, model outputs, and general literature findings separate; mention missing data and conflicting evidence, and say when evidence is insufficient. Return valid JSON with keys: summary, patient_findings, risk_interpretation, corridor_comparison, evidence_supported_considerations, uncertainties, missing_information, limitations, citations."""
+SYSTEM_PROMPT = """You are an evidence-synthesis component for a research prototype, not a doctor. Write one clear, detailed, text-only narrative summary that explains the supplied MRI analysis results and relevant literature in context. Include every populated patient-specific MRI output that is relevant: classification and probability, segmentation and volumes, risk mapping, structures, corridors, input modalities, and model/provenance details. Preserve supplied labels and numeric values exactly. Clearly distinguish experimental model predictions from confirmed clinical findings; synthetic history is not an MRI finding. Never infer a diagnosis, age, sex, tumor location, histology, neurological status, imaging result, risk category, corridor safety, or surgical decision. Do not calculate values or choose a corridor. Omit fields that are absent or empty; do not mention missing or unavailable data. Use literature only when relevant supplied passages support the statement, and cite each literature-based statement inline using an exact [chunk_id] from available_chunk_ids. Patient-specific values come from the supplied MRI analysis context, not the literature. If no supplied passage supports a literature statement, omit that statement rather than describing evidence gaps. Return valid JSON with only these keys: summary (a single prose string) and citations (a list of objects with a chunk_id field). Never output a placeholder, bibliography number, or citation identifier not in available_chunk_ids."""
 ANSWER_KEYS = {
     "summary", "patient_findings", "risk_interpretation", "corridor_comparison",
     "evidence_supported_considerations", "uncertainties", "missing_information",
@@ -140,9 +140,9 @@ def generate_response(question: str, patient: dict[str, Any], evidence: list[dic
         + evidence_text
         + "\n\nALLOWED CITATION CHUNK IDS:\n"
         + available_chunk_ids
-        + "\n\nReturn the requested JSON answer. Keep synthetic history, MRI model "
-        "outputs, and literature findings clearly separated. Do not infer missing "
-        "model results."
+        + "\n\nReturn the requested single-narrative JSON answer. Include supplied "
+        "MRI results in the summary, omit absent values, and cite each literature "
+        "claim inline with its exact chunk ID."
     )
     if not GEMINI_API_KEY:
         return {}, "Gemini is not configured; set GEMINI_API_KEY in 6_rag_treatment_planning\\.env."
@@ -153,7 +153,11 @@ def generate_response(question: str, patient: dict[str, Any], evidence: list[dic
             json={
                 "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {"responseMimeType": "application/json"},
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "temperature": 0.2,
+                    "maxOutputTokens": 1000,
+                },
             },
             timeout=90,
         )

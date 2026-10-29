@@ -13,7 +13,7 @@ from PIL import Image
 import requests
 from streamlit.testing.v1 import AppTest
 
-from integrated_pipeline.app import _empty_result, _run_analysis
+from integrated_pipeline.app import _empty_result, _format_cited_answer, _run_analysis
 from integrated_pipeline.modules import rag_adapter
 from integrated_pipeline.modules.model_registry import load_model_registry
 from integrated_pipeline.modules.model_registry import verify_checkpoint_integrity
@@ -129,6 +129,45 @@ class UploadedMRIInputTests(unittest.TestCase):
 
 
 class RegistryAndReportTests(unittest.TestCase):
+    def test_chat_answer_is_plain_text_with_verified_knowledge_base_citations(self) -> None:
+        formatted = _format_cited_answer(
+            {
+                "answer": {
+                    "summary": "The supplied MRI classification is experimental [P1_C001].",
+                },
+                "citations": [
+                    {
+                        "chunk_id": "P1_C001",
+                        "title": "MRI Study",
+                        "status": "verified",
+                    },
+                    {
+                        "chunk_id": "P2_C001",
+                        "title": "Unverified study",
+                        "status": "unverified",
+                    },
+                ],
+                "retrieved_evidence": [
+                    {
+                        "chunk_id": "P1_C001",
+                        "title": "MRI Study",
+                        "passage": "This passage is not shown in the chat.",
+                        "metadata": {"authors": ["A. Author"], "year": 2025},
+                    },
+                    {
+                        "chunk_id": "P2_C001",
+                        "title": "Unverified study",
+                        "passage": "Unverified source text.",
+                    },
+                ],
+            }
+        )
+
+        self.assertIn("experimental [1]", formatted)
+        self.assertIn("[1] MRI Study. A. Author. 2025.", formatted)
+        self.assertNotIn("This passage is not shown", formatted)
+        self.assertNotIn("Unverified study", formatted)
+
     def test_chat_page_renders_without_an_mri_upload(self) -> None:
         app_path = Path(__file__).resolve().parents[2] / "app.py"
         app = AppTest.from_file(str(app_path)).run(timeout=20)
